@@ -13,6 +13,7 @@ let package = Package(
         // Products define the executables and libraries a package produces, making them visible to other packages.
         .library(name: "AudioRecorder", targets: ["AudioRecorder"]),
         .library(name: "AudioRecorderClient", targets: ["AudioRecorderClient"]),
+        .library(name: "AudioDataStreamClient", targets: ["AudioDataStreamClient"]),
     ],
     dependencies: [
         .package(url: "https://github.com/pointfreeco/swift-dependencies", from: "1.0.0"),
@@ -25,6 +26,12 @@ let package = Package(
         ),
         .target(
             name: "AudioRecorderClient",
+            dependencies: [
+                .product(name: "Dependencies", package: "swift-dependencies")
+            ]
+        ),
+        .target(
+            name: "AudioDataStreamClient",
             dependencies: [
                 .product(name: "Dependencies", package: "swift-dependencies")
             ]
