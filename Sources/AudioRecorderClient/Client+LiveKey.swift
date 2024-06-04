@@ -37,14 +37,18 @@ private actor AudioRecorder {
     }
 
     static func requestPermission() async -> Bool {
-        await withUnsafeContinuation { continuation in
-            #if os(iOS)
-            AVAudioSession.sharedInstance().requestRecordPermission { granted in
-                continuation.resume(returning: granted)
+        if #available(macOS 14.0, iOS 17.0, *) {
+            return await AVAudioApplication.requestRecordPermission()
+        } else {
+            return await withUnsafeContinuation { continuation in
+#if os(iOS)
+                AVAudioSession.sharedInstance().requestRecordPermission { granted in
+                    continuation.resume(returning: granted)
+                }
+#elseif os(macOS)
+                continuation.resume(returning: true)
+#endif
             }
-            #elseif os(macOS)
-            continuation.resume(returning: true)
-            #endif
         }
     }
 
