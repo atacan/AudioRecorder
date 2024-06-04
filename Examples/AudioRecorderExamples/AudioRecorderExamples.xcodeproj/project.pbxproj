@@ -12,6 +12,7 @@
 		79C3D7D12BC1A3790027390F /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 79C3D7D02BC1A3790027390F /* Assets.xcassets */; };
 		79C3D7D52BC1A3790027390F /* Preview Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 79C3D7D42BC1A3790027390F /* Preview Assets.xcassets */; };
 		79C3D7DE2BC1A3CC0027390F /* AudioDataStreamClient in Frameworks */ = {isa = PBXBuildFile; productRef = 79C3D7DD2BC1A3CC0027390F /* AudioDataStreamClient */; };
+		79C3D7E02BC1ADBA0027390F /* WebSocketClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 79C3D7DF2BC1ADBA0027390F /* WebSocketClient.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -22,6 +23,7 @@
 		79C3D7D22BC1A3790027390F /* AudioRecorderExamples.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = AudioRecorderExamples.entitlements; sourceTree = "<group>"; };
 		79C3D7D42BC1A3790027390F /* Preview Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = "Preview Assets.xcassets"; sourceTree = "<group>"; };
 		79C3D7DB2BC1A39A0027390F /* AudioRecorder */ = {isa = PBXFileReference; lastKnownFileType = wrapper; name = AudioRecorder; path = ../..; sourceTree = "<group>"; };
+		79C3D7DF2BC1ADBA0027390F /* WebSocketClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebSocketClient.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -62,6 +64,7 @@
 				79C3D7D02BC1A3790027390F /* Assets.xcassets */,
 				79C3D7D22BC1A3790027390F /* AudioRecorderExamples.entitlements */,
 				79C3D7D32BC1A3790027390F /* Preview Content */,
+				79C3D7DF2BC1ADBA0027390F /* WebSocketClient.swift */,
 			);
 			path = AudioRecorderExamples;
 			sourceTree = "<group>";
@@ -156,6 +159,7 @@
 			files = (
 				79C3D7CF2BC1A3780027390F /* ContentView.swift in Sources */,
 				79C3D7CD2BC1A3780027390F /* AudioRecorderExamplesApp.swift in Sources */,
+				79C3D7E02BC1ADBA0027390F /* WebSocketClient.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

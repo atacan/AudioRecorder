@@ -27,32 +27,40 @@ extension AudioDataStreamClient: DependencyKey {
 }
 
 private actor AudioActor {
-    private var audioEngine: AVAudioEngine? = nil
+//    private var audioEngine: AVAudioEngine? = nil
+    private var audioEngine = AVAudioEngine()
     var dataContinuation: AsyncThrowingStream<Data, Error>.Continuation?
     
     func startTask() async -> AsyncThrowingStream<Data, Error> {
         AsyncThrowingStream { continuation in
             self.dataContinuation = continuation
-            self.audioEngine = AVAudioEngine()
             
             continuation.onTermination = { [audioEngine] _ in
-                audioEngine?.stop()
-                audioEngine?.inputNode.removeTap(onBus: 0)
+                audioEngine.stop()
+                audioEngine.inputNode.removeTap(onBus: 0)
             }
             
-            self.audioEngine?.inputNode.installTap(
-                onBus: 0,
-                bufferSize: 1024,
-                format: self.audioEngine?.inputNode.outputFormat(forBus: 0)
-            ) { buffer, when in
+            let inputNode = audioEngine.inputNode
+            let inputFormat = inputNode.inputFormat(forBus: 0)
+            let outputFormat = AVAudioFormat(commonFormat: .pcmFormatInt16, sampleRate: inputFormat.sampleRate, channels: inputFormat.channelCount, interleaved: true)
+            let converterNode = AVAudioMixerNode()
+            let sinkNode = AVAudioMixerNode()
+            
+            audioEngine.attach(converterNode)
+            audioEngine.attach(sinkNode)
+            
+            converterNode.installTap(onBus: 0, bufferSize: 1024, format: converterNode.outputFormat(forBus: 0)) { (buffer: AVAudioPCMBuffer!, time: AVAudioTime!) -> Void in
                 let audioBuffer = buffer.audioBufferList.pointee.mBuffers
                 let data = Data(bytes: audioBuffer.mData!, count: Int(audioBuffer.mDataByteSize))
                 continuation.yield(data)
             }
             
-            self.audioEngine?.prepare()
+            audioEngine.connect(inputNode, to: converterNode, format: inputFormat)
+            audioEngine.connect(converterNode, to: sinkNode, format: outputFormat)
+            audioEngine.prepare()
+            
             do {
-                try self.audioEngine?.start()
+                try self.audioEngine.start()
             } catch {
                 continuation.finish(throwing: error)
                 return

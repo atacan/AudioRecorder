@@ -17,6 +17,7 @@ let package = Package(
     ],
     dependencies: [
         .package(url: "https://github.com/pointfreeco/swift-dependencies", from: "1.0.0"),
+        .package(url: "https://github.com/pointfreeco/swift-case-paths", from: "1.1.0"),
     ],
     targets: [
         // Targets are the basic building blocks of a package, defining a module or a test suite.
@@ -33,7 +34,9 @@ let package = Package(
         .target(
             name: "AudioDataStreamClient",
             dependencies: [
-                .product(name: "Dependencies", package: "swift-dependencies")
+                .product(name: "Dependencies", package: "swift-dependencies"),
+                .product(name: "DependenciesMacros", package: "swift-dependencies"),
+                .product(name: "CasePaths", package: "swift-case-paths"),
             ]
         ),
         .testTarget(
