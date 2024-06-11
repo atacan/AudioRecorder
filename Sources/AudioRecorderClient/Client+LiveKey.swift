@@ -6,6 +6,8 @@ public struct AudioRecorderClient {
     public var currentTime: @Sendable () async -> TimeInterval?
     public var requestRecordPermission: @Sendable () async -> Bool
     public var startRecording: @Sendable (URL) async throws -> Bool
+    public var pauseRecording: @Sendable () async -> Void
+    public var resumeRecording: @Sendable () async -> Void
     public var stopRecording: @Sendable () async -> Void
 }
 
@@ -18,6 +20,8 @@ extension AudioRecorderClient: DependencyKey {
             currentTime: { await audioRecorder.currentTime },
             requestRecordPermission: { await AudioRecorder.requestPermission() },
             startRecording: { url in try await audioRecorder.start(url: url) },
+            pauseRecording: { await audioRecorder.pause() },
+            resumeRecording: { await audioRecorder.resume() },
             stopRecording: { await audioRecorder.stop() }
         )
     }
@@ -50,6 +54,14 @@ private actor AudioRecorder {
 #endif
             }
         }
+    }
+
+    func pause() {
+        recorder?.pause()
+    }
+
+    func resume() {
+        recorder?.record()
     }
 
     func stop() {

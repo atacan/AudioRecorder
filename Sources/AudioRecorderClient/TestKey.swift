@@ -18,6 +18,8 @@ extension AudioRecorderClient: TestDependencyKey {
                 }
                 return true
             },
+            pauseRecording: { await isRecording.setValue(false) },
+            resumeRecording: { await isRecording.setValue(true) },
             stopRecording: {
                 await isRecording.setValue(false)
                 await currentTime.setValue(0)
@@ -31,6 +33,8 @@ extension AudioRecorderClient: TestDependencyKey {
             "\(Self.self).requestRecordPermission", placeholder: false
         ),
         startRecording: unimplemented("\(Self.self).startRecording", placeholder: false),
+        pauseRecording: unimplemented("\(Self.self).pauseRecording"),
+        resumeRecording: unimplemented("\(Self.self).resumeRecording"),
         stopRecording: unimplemented("\(Self.self).stopRecording")
     )
 }
