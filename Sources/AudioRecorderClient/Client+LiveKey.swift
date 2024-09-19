@@ -1,11 +1,12 @@
 import Dependencies
 import Foundation
 import XCTestDynamicOverlay
+import SystemSoundClient
 
 public struct AudioRecorderClient {
     public var currentTime: @Sendable () async -> TimeInterval?
     public var requestRecordPermission: @Sendable () async -> Bool
-    public var startRecording: @Sendable (URL) async throws -> Bool
+    public var startRecording: @Sendable (URL, Bool) async throws -> Bool
     public var pauseRecording: @Sendable () async -> Void
     public var resumeRecording: @Sendable () async -> Void
     public var stopRecording: @Sendable () async -> Void
@@ -19,7 +20,7 @@ extension AudioRecorderClient: DependencyKey {
         return Self(
             currentTime: { await audioRecorder.currentTime },
             requestRecordPermission: { await AudioRecorder.requestPermission() },
-            startRecording: { url in try await audioRecorder.start(url: url) },
+            startRecording: { url, playSound in try await audioRecorder.start(url: url, playSound: playSound) },
             pauseRecording: { await audioRecorder.pause() },
             resumeRecording: { await audioRecorder.resume() },
             stopRecording: { await audioRecorder.stop() }
@@ -71,7 +72,7 @@ private actor AudioRecorder {
         #endif
     }
 
-    func start(url: URL) async throws -> Bool {
+    func start(url: URL, playSound: Bool = false) async throws -> Bool {
         stop()
 
         let stream = AsyncThrowingStream<Bool, Error> { continuation in
@@ -113,6 +114,11 @@ private actor AudioRecorder {
                 try AVAudioSession.sharedInstance().setActive(true)
                 #endif
                 self.recorder?.record()
+                
+                if playSound {
+                    @Dependency(\.systemSound) var systemSoundClient
+                    systemSoundClient.play(.begin_record)
+                }
             } catch {
                 continuation.finish(throwing: error)
             }

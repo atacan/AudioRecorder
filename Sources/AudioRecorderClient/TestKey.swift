@@ -10,7 +10,7 @@ extension AudioRecorderClient: TestDependencyKey {
         return Self(
             currentTime: { await currentTime.value },
             requestRecordPermission: { true },
-            startRecording: { _ in
+            startRecording: { _,_  in
                 await isRecording.setValue(true)
                 while await isRecording.value {
                     try await Task.sleep(for: .seconds(1))
