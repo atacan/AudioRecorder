@@ -3,10 +3,12 @@
 	archiveVersion = 1;
 	classes = {
 	};
-	objectVersion = 56;
+	objectVersion = 60;
 	objects = {
 
 /* Begin PBXBuildFile section */
+		791D89D22CB720D7007E8D79 /* Deepgram in Frameworks */ = {isa = PBXBuildFile; productRef = 791D89D12CB720D7007E8D79 /* Deepgram */; };
+		791D89D42CB720D7007E8D79 /* DeepgramDependency in Frameworks */ = {isa = PBXBuildFile; productRef = 791D89D32CB720D7007E8D79 /* DeepgramDependency */; };
 		79C3D7CD2BC1A3780027390F /* AudioRecorderExamplesApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 79C3D7CC2BC1A3780027390F /* AudioRecorderExamplesApp.swift */; };
 		79C3D7CF2BC1A3780027390F /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 79C3D7CE2BC1A3780027390F /* ContentView.swift */; };
 		79C3D7D12BC1A3790027390F /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 79C3D7D02BC1A3790027390F /* Assets.xcassets */; };
@@ -32,6 +34,8 @@
 			buildActionMask = 2147483647;
 			files = (
 				79C3D7DE2BC1A3CC0027390F /* AudioDataStreamClient in Frameworks */,
+				791D89D42CB720D7007E8D79 /* DeepgramDependency in Frameworks */,
+				791D89D22CB720D7007E8D79 /* Deepgram in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -102,6 +106,8 @@
 			name = AudioRecorderExamples;
 			packageProductDependencies = (
 				79C3D7DD2BC1A3CC0027390F /* AudioDataStreamClient */,
+				791D89D12CB720D7007E8D79 /* Deepgram */,
+				791D89D32CB720D7007E8D79 /* DeepgramDependency */,
 			);
 			productName = AudioRecorderExamples;
 			productReference = 79C3D7C92BC1A3780027390F /* AudioRecorderExamples.app */;
@@ -131,6 +137,9 @@
 				Base,
 			);
 			mainGroup = 79C3D7C02BC1A3780027390F;
+			packageReferences = (
+				791D89D02CB720D7007E8D79 /* XCLocalSwiftPackageReference "../../../Deepgram" */,
+			);
 			productRefGroup = 79C3D7CA2BC1A3780027390F /* Products */;
 			projectDirPath = "";
 			projectRoot = "";
@@ -381,7 +390,22 @@
 		};
 /* End XCConfigurationList section */
 
+/* Begin XCLocalSwiftPackageReference section */
+		791D89D02CB720D7007E8D79 /* XCLocalSwiftPackageReference "../../../Deepgram" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = ../../../Deepgram;
+		};
+/* End XCLocalSwiftPackageReference section */
+
 /* Begin XCSwiftPackageProductDependency section */
+		791D89D12CB720D7007E8D79 /* Deepgram */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = Deepgram;
+		};
+		791D89D32CB720D7007E8D79 /* DeepgramDependency */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = DeepgramDependency;
+		};
 		79C3D7DD2BC1A3CC0027390F /* AudioDataStreamClient */ = {
 			isa = XCSwiftPackageProductDependency;
 			productName = AudioDataStreamClient;
