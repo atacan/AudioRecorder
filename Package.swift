@@ -15,7 +15,7 @@ let package = Package(
         .library(name: "AudioDataStreamClient", targets: ["AudioDataStreamClient"]),
     ],
     dependencies: [
-        .package(url: "https://github.com/pointfreeco/swift-dependencies", from: "1.0.0"),
+        .package(url: "https://github.com/pointfreeco/swift-dependencies", from: "1.4.0"),
         .package(url: "https://github.com/pointfreeco/swift-case-paths", from: "1.1.0"),
         .package(url: "git@github.com:atacan/SystemSoundDependency.git", branch: "main"),
         // .package(path: "../SystemSoundDependency"),
