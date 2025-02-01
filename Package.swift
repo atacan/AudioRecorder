@@ -24,7 +24,8 @@ let package = Package(
         .target(
             name: "AudioRecorderClient",
             dependencies: [
-                .product(name: "Dependencies", package: "swift-dependencies")
+                .product(name: "Dependencies", package: "swift-dependencies"),
+                .product(name: "SystemSoundClient", package: "SystemSoundDependency"),
             ]
         ),
         .target(
