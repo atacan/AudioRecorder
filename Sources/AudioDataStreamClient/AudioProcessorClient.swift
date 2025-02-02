@@ -3,7 +3,7 @@ import WhisperKit
 import Dependencies
 import DependenciesMacros
 
-@DependencyClient
+//@DependencyClient
 public struct AudioProcessorClient: Sendable {
     public var startRecording: @Sendable () -> AsyncThrowingStream<AudioChunk, Error>
     public var pauseRecording: @Sendable () -> Void
@@ -18,18 +18,151 @@ public struct AudioProcessorClient: Sendable {
 extension AudioProcessorClient: DependencyKey {
     public static var liveValue: Self {
         let audioProcessor = AudioProcessor()
+        
+        // Shared state between functions
+        actor StreamState {
+            var continuation: AsyncThrowingStream<AudioChunk, Error>.Continuation?
+            var currentBuffer: [Float] = []
+            var isSpeechActive = false
+            var silenceCounter = 0
+            let silenceThreshold: Float = 0.022
+            let silenceTimeThreshold = 30  // 3 seconds (30 * 100ms buffers)
+            
+            func setContinuation(_ cont: AsyncThrowingStream<AudioChunk, Error>.Continuation) {
+                self.continuation = cont
+            }
+            
+            func resetState() {
+                isSpeechActive = false
+                silenceCounter = 0
+                currentBuffer = []
+            }
+            
+            func processBuffer(_ buffer: [Float]) {
+                let energy = AudioProcessor.calculateAverageEnergy(of: buffer)
+                let isCurrentBufferSilent = energy < silenceThreshold
+                
+                if !isSpeechActive {
+                    if !isCurrentBufferSilent {
+                        // Speech started
+                        isSpeechActive = true
+                        silenceCounter = 0
+                        currentBuffer = buffer
+                    }
+                    // If silent, just ignore the buffer
+                } else {
+                    // Speech is active, append the new buffer
+                    currentBuffer.append(contentsOf: buffer)
+                    
+                    if isCurrentBufferSilent {
+                        silenceCounter += 1
+                        if silenceCounter >= silenceTimeThreshold {
+                            // 3 seconds of silence detected, emit the chunk
+                            if !currentBuffer.isEmpty {
+                                continuation?.yield(.init(floats: currentBuffer))
+                            }
+                            resetState()
+                        }
+                    } else {
+                        silenceCounter = 0
+                    }
+                }
+            }
+        }
+        
+        let streamState = StreamState()
+        
         return Self(
-            startRecording: { audioProcessor.startRecordingLive() },
-            pauseRecording: { audioProcessor.pauseRecording() },
-            resumeRecording: { audioProcessor.resumeRecording() },
-            stopRecording: { audioProcessor.stopRecording() }
+            startRecording: {
+                AsyncThrowingStream { continuation in
+                    Task {
+                        await streamState.setContinuation(continuation)
+                        await streamState.resetState()
+                        
+                        do {
+                            try audioProcessor.startRecordingLive { buffer in
+                                Task {
+                                    await streamState.processBuffer(buffer)
+                                }
+                            }
+                        } catch {
+                            continuation.finish(throwing: error)
+                        }
+                    }
+                }
+            },
+            pauseRecording: { 
+                audioProcessor.pauseRecording()
+            },
+            resumeRecording: { 
+                do {
+                    try audioProcessor.resumeRecordingLive()
+                } catch {
+                    // Handle error if needed
+                    print("Error resuming recording: \(error)")
+                }
+            },
+            stopRecording: { 
+                audioProcessor.stopRecording()
+            }
         )
     }
 }
 
+extension DependencyValues {
+    public var audioProcessor: AudioProcessorClient {
+        get { self[AudioProcessorClient.self] }
+        set { self[AudioProcessorClient.self] = newValue }
+    }
+}
+
+public func saveFloatArrayToWavFile(
+    samples: [Float],
+    sampleRate: Double = 16000,
+    fileName: String? = nil,
+    fileURL: URL? = nil
+) throws -> URL {
+    // Create audio buffer
+    let format = AVAudioFormat(standardFormatWithSampleRate: sampleRate, channels: 1)!
+    let audioBuffer = AVAudioPCMBuffer(pcmFormat: format, frameCapacity: AVAudioFrameCount(samples.count))!
+    
+    // Copy samples to audio buffer
+    for (index, sample) in samples.enumerated() {
+        audioBuffer.floatChannelData?[0][index] = sample
+    }
+    audioBuffer.frameLength = AVAudioFrameCount(samples.count)
+    
+    // Use provided URL or generate one in Downloads directory
+    let targetURL: URL
+    if let fileURL = fileURL {
+        targetURL = fileURL
+    } else {
+        let actualFileName = fileName ?? "recording_\(Date().timeIntervalSince1970).wav"
+        let documentsPath = FileManager.default.urls(for: .downloadsDirectory, in: .userDomainMask)[0]
+        let recordingsDir = documentsPath.appendingPathComponent("AudioRecordings", isDirectory: true)
+        try? FileManager.default.createDirectory(at: recordingsDir, withIntermediateDirectories: true)
+        targetURL = recordingsDir.appendingPathComponent(actualFileName)
+    }
+    
+    // Ensure the directory exists
+    try FileManager.default.createDirectory(at: targetURL.deletingLastPathComponent(), 
+                                          withIntermediateDirectories: true)
+    
+    // If file exists, remove it first
+    if FileManager.default.fileExists(atPath: targetURL.path) {
+        try FileManager.default.removeItem(at: targetURL)
+    }
+    
+    // Save to file
+    let audioFile = try AVAudioFile(forWriting: targetURL, settings: format.settings)
+    try audioFile.write(from: audioBuffer)
+    return targetURL
+}
+
 import SwiftUI
-struct MyVADRecorderView: View {
-    var body: some View {
+public struct MyVADRecorderView: View {
+    public init (){}
+    public var body: some View {
         StreamWithVAD()
     }
 }
@@ -142,24 +275,8 @@ class StreamWithVADViewModel: ObservableObject {
         // Trim silence from the end
         let trimmedBuffer = trimSilenceFromEnd(currentBuffer)
         
-        // Create audio buffer
-        let format = AVAudioFormat(standardFormatWithSampleRate: 16000, channels: 1)!
-        let audioBuffer = AVAudioPCMBuffer(pcmFormat: format, frameCapacity: AVAudioFrameCount(trimmedBuffer.count))!
-        
-        // Copy samples to audio buffer
-        for (index, sample) in trimmedBuffer.enumerated() {
-            audioBuffer.floatChannelData?[0][index] = sample
-        }
-        audioBuffer.frameLength = AVAudioFrameCount(trimmedBuffer.count)
-        
-        // Save to file
-        let fileName = "recording_\(Date().timeIntervalSince1970).wav"
-        let documentsPath = FileManager.default.urls(for: .downloadsDirectory, in: .userDomainMask)[0]
-        let fileURL = documentsPath.appendingPathComponent(fileName)
-        
         do {
-            let audioFile = try AVAudioFile(forWriting: fileURL, settings: format.settings)
-            try audioFile.write(from: audioBuffer)
+            let fileURL = try saveFloatArrayToWavFile(samples: trimmedBuffer)
             print("Saved audio file: \(fileURL.path)")
         } catch {
             print("Error saving audio file: \(error)")

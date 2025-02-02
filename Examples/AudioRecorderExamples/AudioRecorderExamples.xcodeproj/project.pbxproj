@@ -9,6 +9,7 @@
 /* Begin PBXBuildFile section */
 		791D89D22CB720D7007E8D79 /* Deepgram in Frameworks */ = {isa = PBXBuildFile; productRef = 791D89D12CB720D7007E8D79 /* Deepgram */; };
 		791D89D42CB720D7007E8D79 /* DeepgramDependency in Frameworks */ = {isa = PBXBuildFile; productRef = 791D89D32CB720D7007E8D79 /* DeepgramDependency */; };
+		792057112D4FFB480057B2B0 /* StreamVADView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 792057102D4FFB480057B2B0 /* StreamVADView.swift */; };
 		79C3D7CD2BC1A3780027390F /* AudioRecorderExamplesApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 79C3D7CC2BC1A3780027390F /* AudioRecorderExamplesApp.swift */; };
 		79C3D7CF2BC1A3780027390F /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 79C3D7CE2BC1A3780027390F /* ContentView.swift */; };
 		79C3D7D12BC1A3790027390F /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 79C3D7D02BC1A3790027390F /* Assets.xcassets */; };
@@ -18,6 +19,7 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		792057102D4FFB480057B2B0 /* StreamVADView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StreamVADView.swift; sourceTree = "<group>"; };
 		79C3D7C92BC1A3780027390F /* AudioRecorderExamples.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = AudioRecorderExamples.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		79C3D7CC2BC1A3780027390F /* AudioRecorderExamplesApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioRecorderExamplesApp.swift; sourceTree = "<group>"; };
 		79C3D7CE2BC1A3780027390F /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
@@ -64,6 +66,7 @@
 			isa = PBXGroup;
 			children = (
 				79C3D7CC2BC1A3780027390F /* AudioRecorderExamplesApp.swift */,
+				792057102D4FFB480057B2B0 /* StreamVADView.swift */,
 				79C3D7CE2BC1A3780027390F /* ContentView.swift */,
 				79C3D7D02BC1A3790027390F /* Assets.xcassets */,
 				79C3D7D22BC1A3790027390F /* AudioRecorderExamples.entitlements */,
@@ -166,6 +169,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				792057112D4FFB480057B2B0 /* StreamVADView.swift in Sources */,
 				79C3D7CF2BC1A3780027390F /* ContentView.swift in Sources */,
 				79C3D7CD2BC1A3780027390F /* AudioRecorderExamplesApp.swift in Sources */,
 				79C3D7E02BC1ADBA0027390F /* WebSocketClient.swift in Sources */,
