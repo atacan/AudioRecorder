@@ -84,7 +84,7 @@ extension AudioProcessorClient: DependencyKey {
         return Self(
             startRecording: {
                 AsyncThrowingStream { continuation in
-                    Task {
+                    let task = Task {
                         await streamState.setContinuation(continuation)
                         await streamState.resetState()
                         
@@ -97,6 +97,10 @@ extension AudioProcessorClient: DependencyKey {
                         } catch {
                             continuation.finish(throwing: error)
                         }
+                    }
+
+                    continuation.onTermination = { _ in
+                        task.cancel()
                     }
                 }
             },
