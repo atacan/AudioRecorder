@@ -59,7 +59,8 @@ extension AudioProcessorClient: DependencyKey {
                         if silenceCounter >= silenceTimeThreshold {
                             // 3 seconds of silence detected, emit the chunk
                             if !currentBuffer.isEmpty {
-                                continuation?.yield(.init(floats: currentBuffer))
+                                let trimmedBuffer = trimSilenceFromEnd(currentBuffer, silenceThreshold: silenceThreshold)
+                                continuation?.yield(.init(floats: trimmedBuffer))
                             }
                             resetState()
                         }
@@ -159,6 +160,24 @@ public func saveFloatArrayToWavFile(
     return targetURL
 }
 
+func trimSilenceFromEnd(_ buffer: [Float], silenceThreshold: Float) -> [Float] {
+    var endIndex = buffer.count - 1
+    let chunkSize = 160 // 10ms chunks at 16kHz
+    
+    // Process in chunks from the end
+    while endIndex >= chunkSize {
+        let chunk = Array(buffer[(endIndex - chunkSize + 1)...endIndex])
+        let energy = AudioProcessor.calculateAverageEnergy(of: chunk)
+        
+        if energy > silenceThreshold {
+            break
+        }
+        endIndex -= chunkSize
+    }
+    
+    return Array(buffer[0...endIndex])
+}
+
 import SwiftUI
 public struct MyVADRecorderView: View {
     public init (){}
@@ -167,7 +186,6 @@ public struct MyVADRecorderView: View {
     }
 }
 
-@MainActor
 class StreamWithVADViewModel: ObservableObject {
     private let audioProcessor = AudioProcessor()
     private var isRecording = false
@@ -273,7 +291,7 @@ class StreamWithVADViewModel: ObservableObject {
         guard !currentBuffer.isEmpty else { return }
         
         // Trim silence from the end
-        let trimmedBuffer = trimSilenceFromEnd(currentBuffer)
+        let trimmedBuffer = trimSilenceFromEnd(currentBuffer, silenceThreshold: self.silenceThreshold)
         
         do {
             let fileURL = try saveFloatArrayToWavFile(samples: trimmedBuffer)
@@ -281,24 +299,6 @@ class StreamWithVADViewModel: ObservableObject {
         } catch {
             print("Error saving audio file: \(error)")
         }
-    }
-    
-    private func trimSilenceFromEnd(_ buffer: [Float]) -> [Float] {
-        var endIndex = buffer.count - 1
-        let chunkSize = 160 // 10ms chunks at 16kHz
-        
-        // Process in chunks from the end
-        while endIndex >= chunkSize {
-            let chunk = Array(buffer[(endIndex - chunkSize + 1)...endIndex])
-            let energy = AudioProcessor.calculateAverageEnergy(of: chunk)
-            
-            if energy > silenceThreshold {
-                break
-            }
-            endIndex -= chunkSize
-        }
-        
-        return Array(buffer[0...endIndex])
     }
     
     private func resetState() {
