@@ -20,7 +20,7 @@ extension AudioProcessorClient: DependencyKey {
         let audioProcessor = AudioProcessor()
         
         // Shared state between functions
-        actor StreamState {
+        class StreamState {
             var continuation: AsyncThrowingStream<AudioChunk, Error>.Continuation?
             var currentBuffer: [Float] = []
             var isSpeechActive = false
@@ -84,27 +84,20 @@ extension AudioProcessorClient: DependencyKey {
         return Self(
             startRecording: {
                 AsyncThrowingStream { continuation in
-                    let task = Task {
-                        await streamState.setContinuation(continuation)
-                        await streamState.resetState()
-                        
-                        do {
-                            try audioProcessor.startRecordingLive { buffer in
-                                Task {
-                                    await streamState.processBuffer(buffer)
-                                }
-                            }
-                        } catch {
-                            continuation.finish(throwing: error)
+                    
+                    streamState.setContinuation(continuation)
+                    streamState.resetState()
+                    
+                    do {
+                        try audioProcessor.startRecordingLive { buffer in
+                            streamState.processBuffer(buffer)
                         }
-                    }
-
-                    continuation.onTermination = { _ in
-                        task.cancel()
+                    } catch {
+                        continuation.finish(throwing: error)
                     }
                 }
             },
-            pauseRecording: { 
+            pauseRecording: {
                 audioProcessor.pauseRecording()
             },
             resumeRecording: { 
