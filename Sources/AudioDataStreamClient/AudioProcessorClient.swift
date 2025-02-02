@@ -27,6 +27,11 @@ extension AudioProcessorClient: DependencyKey {
             var silenceCounter = 0
             let silenceThreshold: Float = 0.022
             let silenceTimeThreshold = 30  // 3 seconds (30 * 100ms buffers)
+            let audioProcessor: AudioProcessor
+            
+            init(audioProcessor: AudioProcessor) {
+                self.audioProcessor = audioProcessor
+            }
             
             func setContinuation(_ cont: AsyncThrowingStream<AudioChunk, Error>.Continuation) {
                 self.continuation = cont
@@ -49,7 +54,8 @@ extension AudioProcessorClient: DependencyKey {
                         silenceCounter = 0
                         currentBuffer = buffer
                     }
-                    // If silent, just ignore the buffer
+                    // If silent, just ignore the buffer and clean up memory
+                    audioProcessor.purgeAudioSamples(keepingLast: 16000) // Keep last 1 second of audio
                 } else {
                     // Speech is active, append the new buffer
                     currentBuffer.append(contentsOf: buffer)
@@ -63,6 +69,8 @@ extension AudioProcessorClient: DependencyKey {
                                 continuation?.yield(.init(floats: trimmedBuffer))
                             }
                             resetState()
+                            // Clean up memory during silence
+                            audioProcessor.purgeAudioSamples(keepingLast: 16000) // Keep last 1 second of audio
                         }
                     } else {
                         silenceCounter = 0
@@ -71,7 +79,7 @@ extension AudioProcessorClient: DependencyKey {
             }
         }
         
-        let streamState = StreamState()
+        let streamState = StreamState(audioProcessor: audioProcessor)
         
         return Self(
             startRecording: {
