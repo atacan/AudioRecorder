@@ -170,20 +170,41 @@ public func saveFloatArrayToWavFile(
 
 func trimSilenceFromEnd(_ buffer: [Float], silenceThreshold: Float) -> [Float] {
     var endIndex = buffer.count - 1
-    let chunkSize = 160 // 10ms chunks at 16kHz
+    let chunkSize = 80 // 5ms chunks at 16kHz for more precise trimming
+    let minSilenceToKeep = 8000 // Keep at least 500ms of silence at the end
+    let consecutiveNonSilentChunksNeeded = 4 // Keep this the same for stability
+    let silenceBufferMultiplier = 24 // Keep 120ms of silence after speech detection
+    let maxSilenceToKeep = 12000 // Maximum 750ms of silence to prevent excessive length
     
-    // Process in chunks from the end
-    while endIndex >= chunkSize {
+    var nonSilentChunksCount = 0
+    var lastSpeechEndIndex = endIndex // Track the last position where we detected speech
+    
+    // Process in chunks from the end, but keep at least minSilenceToKeep samples
+    while endIndex >= chunkSize && endIndex > minSilenceToKeep {
         let chunk = Array(buffer[(endIndex - chunkSize + 1)...endIndex])
         let energy = AudioProcessor.calculateAverageEnergy(of: chunk)
         
         if energy > silenceThreshold {
-            break
+            nonSilentChunksCount += 1
+            lastSpeechEndIndex = endIndex
+            if nonSilentChunksCount >= consecutiveNonSilentChunksNeeded {
+                // Found consistent speech, add a larger buffer of silence and return
+                let silenceToAdd = chunkSize * silenceBufferMultiplier
+                let finalEndIndex = min(lastSpeechEndIndex + silenceToAdd, min(buffer.count - 1, lastSpeechEndIndex + maxSilenceToKeep))
+                return Array(buffer[0...finalEndIndex])
+            }
+        } else {
+            // More gradual decrease for robustness
+            nonSilentChunksCount = max(0, nonSilentChunksCount - 1) 
         }
+        
         endIndex -= chunkSize
     }
     
-    return Array(buffer[0...endIndex])
+    // If we get here, either the buffer is too short or it's all silence
+    // Keep a significant amount of silence at the end, but not more than the maximum
+    let silenceToKeep = min(minSilenceToKeep, maxSilenceToKeep)
+    return Array(buffer[0...min(endIndex + silenceToKeep, buffer.count - 1)])
 }
 
 import SwiftUI
