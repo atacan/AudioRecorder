@@ -3,27 +3,49 @@ import WhisperKit
 import Dependencies
 import DependenciesMacros
 
+@DependencyClient
 public struct AudioProcessorClient: Sendable {
     public var startRecording: @Sendable () -> AsyncThrowingStream<AudioChunk, Error>
     public var pauseRecording: @Sendable () -> Void
     public var resumeRecording: @Sendable () -> Void
     public var stopRecording: @Sendable () -> Void
     
-    struct AudioChunk {
-        var floats: [Float]
-        
+    public struct AudioChunk {
+        public var floats: [Float]
     }
 }
 
+extension AudioProcessorClient: DependencyKey {
+    public static var liveValue: Self {
+        let audioProcessor = AudioProcessor()
+        return Self(
+            startRecording: { audioProcessor.startRecordingLive() },
+            pauseRecording: { audioProcessor.pauseRecording() },
+            resumeRecording: { audioProcessor.resumeRecording() },
+            stopRecording: { audioProcessor.stopRecording() }
+        )
+    }
+}
 
-class StreamWithVADRecorder {
+import SwiftUI
+struct MyVADRecorderView: View {
+    var body: some View {
+        StreamWithVAD()
+    }
+}
+
+@MainActor
+class StreamWithVADViewModel: ObservableObject {
     private let audioProcessor = AudioProcessor()
     private var isRecording = false
+    private var isPaused = false
     private var isSpeechActive = false
     private var currentBuffer: [Float] = []
     private var silenceCounter = 0
     private let silenceThreshold: Float = 0.022  // Adjust this threshold as needed
     private let silenceTimeThreshold = 30  // 3 seconds (30 * 100ms buffers)
+    
+    @Published var recordingState = "Not Recording"
     
     func toggleRecording() {
         if !isRecording {
@@ -33,20 +55,48 @@ class StreamWithVADRecorder {
         }
     }
     
+    func togglePause() {
+        if isPaused {
+            resumeRecording()
+        } else {
+            pauseRecording()
+        }
+    }
+    
     private func startRecording() {
         do {
             try audioProcessor.startRecordingLive { [weak self] buffer in
                 self?.processNewBuffer(buffer)
             }
             isRecording = true
+            isPaused = false
+            recordingState = "Recording"
         } catch {
             print("Failed to start recording: \(error)")
+        }
+    }
+    
+    private func pauseRecording() {
+        audioProcessor.pauseRecording()
+        isPaused = true
+        recordingState = "Paused"
+    }
+    
+    private func resumeRecording() {
+        do {
+            try audioProcessor.resumeRecordingLive()
+            isPaused = false
+            recordingState = "Recording"
+        } catch {
+            print("Failed to resume recording: \(error)")
         }
     }
     
     private func stopRecording() {
         audioProcessor.stopRecording()
         isRecording = false
+        isPaused = false
+        recordingState = "Not Recording"
         // Save any remaining audio if speech was active
         if isSpeechActive {
             saveCurrentBuffer()
@@ -138,5 +188,43 @@ class StreamWithVADRecorder {
         isSpeechActive = false
         silenceCounter = 0
         currentBuffer = []
+    }
+}
+
+struct StreamWithVAD: View {
+    @StateObject private var viewModel = StreamWithVADViewModel()
+    
+    var body: some View {
+        VStack {
+            Text(viewModel.recordingState)
+                .padding()
+            
+            Button(action: {
+                viewModel.toggleRecording()
+            }) {
+                Text(viewModel.recordingState == "Recording" || viewModel.recordingState == "Paused" 
+                     ? "Stop Recording" 
+                     : "Start Recording")
+                    .padding()
+                    .background(viewModel.recordingState == "Recording" ? Color.red 
+                              : viewModel.recordingState == "Paused" ? Color.orange 
+                              : Color.blue)
+                    .foregroundColor(.white)
+                    .cornerRadius(10)
+            }
+            
+            if viewModel.recordingState == "Recording" || viewModel.recordingState == "Paused" {
+                Button(action: {
+                    viewModel.togglePause()
+                }) {
+                    Text(viewModel.recordingState == "Paused" ? "Resume" : "Pause")
+                        .padding()
+                        .background(viewModel.recordingState == "Paused" ? Color.green : Color.orange)
+                        .foregroundColor(.white)
+                        .cornerRadius(10)
+                }
+                .padding(.top, 8)
+            }
+        }
     }
 }
