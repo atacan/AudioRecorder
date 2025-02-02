@@ -7,7 +7,7 @@ import DependenciesMacros
 public struct AudioProcessorClient: Sendable {
     public var startRecording: @Sendable () -> AsyncThrowingStream<AudioChunk, Error>
     public var pauseRecording: @Sendable () -> Void
-    public var resumeRecording: @Sendable () -> Void
+    public var resumeRecording: @Sendable () throws -> Void
     public var stopRecording: @Sendable () -> Void
     
     public struct AudioChunk {
@@ -108,12 +108,7 @@ extension AudioProcessorClient: DependencyKey {
                 audioProcessor.pauseRecording()
             },
             resumeRecording: { 
-                do {
-                    try audioProcessor.resumeRecordingLive()
-                } catch {
-                    // Handle error if needed
-                    print("Error resuming recording: \(error)")
-                }
+                try audioProcessor.resumeRecordingLive()
             },
             stopRecording: { 
                 audioProcessor.stopRecording()
