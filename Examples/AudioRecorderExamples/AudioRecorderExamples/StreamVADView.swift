@@ -34,9 +34,10 @@ final class StreamVADModel {
             let filename = "recording_\(timestamp).wav"
                 .replacingOccurrences(of: " ", with: "_")
                 .replacingOccurrences(of: ":", with: "-")
+                .replacingOccurrences(of: ",", with: "-")
             let fileURL = recordingsDir.appendingPathComponent(filename)
             
-            try await saveFloatArrayToWavFile(samples: chunk.floats, fileURL: fileURL)
+            try saveFloatArrayToWavFile(samples: chunk.floats, fileURL: fileURL)
             print("Saved audio file: \(fileURL.path)")
         }
     }
