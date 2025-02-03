@@ -3,15 +3,29 @@ import WhisperKit
 import Dependencies
 import DependenciesMacros
 
-//@DependencyClient
+@DependencyClient
 public struct AudioProcessorClient: Sendable {
-    public var startRecording: @Sendable () -> AsyncThrowingStream<AudioChunk, Error>
+    
+    public var startRecording: @Sendable (_ config: VADConfiguration) -> AsyncThrowingStream<AudioChunk, Error> = { _ in .finished() }
     public var pauseRecording: @Sendable () -> Void
     public var resumeRecording: @Sendable () throws -> Void
     public var stopRecording: @Sendable () -> Void
     
     public struct AudioChunk {
         public var floats: [Float]
+    }
+}
+
+public struct VADConfiguration {
+    public let silenceThreshold: Float
+    public let silenceTimeThreshold: Int
+    
+    public init(
+        silenceThreshold: Float = 0.022,
+        silenceTimeThreshold: Int = 30 // 3 seconds (30 * 100ms buffers)
+    ) {
+        self.silenceThreshold = silenceThreshold
+        self.silenceTimeThreshold = silenceTimeThreshold
     }
 }
 
@@ -25,12 +39,14 @@ extension AudioProcessorClient: DependencyKey {
             var currentBuffer: [Float] = []
             var isSpeechActive = false
             var silenceCounter = 0
-            let silenceThreshold: Float = 0.022
-            let silenceTimeThreshold = 30  // 3 seconds (30 * 100ms buffers)
+            let silenceThreshold: Float
+            let silenceTimeThreshold: Int
             let audioProcessor: AudioProcessor
             
-            init(audioProcessor: AudioProcessor) {
+            init(audioProcessor: AudioProcessor, config: VADConfiguration) {
                 self.audioProcessor = audioProcessor
+                self.silenceThreshold = config.silenceThreshold
+                self.silenceTimeThreshold = config.silenceTimeThreshold
             }
             
             func setContinuation(_ cont: AsyncThrowingStream<AudioChunk, Error>.Continuation) {
@@ -79,12 +95,11 @@ extension AudioProcessorClient: DependencyKey {
             }
         }
         
-        let streamState = StreamState(audioProcessor: audioProcessor)
-        
         return Self(
-            startRecording: {
+            startRecording: { config in
                 AsyncThrowingStream { continuation in
                     
+                    let streamState = StreamState(audioProcessor: audioProcessor, config: config)
                     streamState.setContinuation(continuation)
                     streamState.resetState()
                     

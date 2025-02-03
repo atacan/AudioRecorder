@@ -21,7 +21,7 @@ final class StreamVADModel {
     @Dependency(\.audioProcessor) var audioProcessor
     
     func startButtonTapped() async throws {
-        let stream = audioProcessor.startRecording()
+        let stream = audioProcessor.startRecording(.init())
         
         // Create a directory for our recordings if it doesn't exist
         let downloadsURL = FileManager.default.urls(for: .downloadsDirectory, in: .userDomainMask)[0]
