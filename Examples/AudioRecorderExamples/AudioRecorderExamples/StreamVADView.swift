@@ -37,7 +37,7 @@ final class StreamVADModel {
                 .replacingOccurrences(of: ",", with: "-")
             let fileURL = recordingsDir.appendingPathComponent(filename)
             
-            try saveFloatArrayToWavFile(samples: chunk.floats, fileURL: fileURL)
+            _ = try saveFloatArrayToWavFile(samples: chunk.floats, fileURL: fileURL)
             print("Saved audio file: \(fileURL.path)")
         }
     }
