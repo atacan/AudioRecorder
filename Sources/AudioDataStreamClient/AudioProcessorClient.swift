@@ -27,6 +27,14 @@ public struct VADConfiguration {
         self.silenceThreshold = silenceThreshold
         self.silenceTimeThreshold = silenceTimeThreshold
     }
+    
+    public init(
+        silenceThreshold: Float = 0.022,
+        silenceTimeThresholdSeconds: Int
+    ) {
+        self.silenceThreshold = silenceThreshold
+        self.silenceTimeThreshold = silenceTimeThresholdSeconds * 10
+    }
 }
 
 extension AudioProcessorClient: DependencyKey {
