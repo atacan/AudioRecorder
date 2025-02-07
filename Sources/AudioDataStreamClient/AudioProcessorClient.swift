@@ -17,7 +17,9 @@ public struct AudioProcessorClient: Sendable {
 }
 
 public struct VADConfiguration {
+    /// The threshold for silence detection.
     public let silenceThreshold: Float
+    /// The number of 100ms buffers to wait before emitting an audio chunk.
     public let silenceTimeThreshold: Int
     
     public init(
