@@ -10,7 +10,9 @@ struct AudioRecorderExamplesApp: App {
     var body: some Scene {
         WindowGroup {
             // ContentView()
-            StreamVADView()
+//            StreamVADView()
+//            StreamToSFSpeech()
+            IsMutedView()
         }
     }
 }

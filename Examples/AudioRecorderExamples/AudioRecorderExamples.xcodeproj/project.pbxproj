@@ -16,6 +16,9 @@
 		79C3D7D52BC1A3790027390F /* Preview Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 79C3D7D42BC1A3790027390F /* Preview Assets.xcassets */; };
 		79C3D7DE2BC1A3CC0027390F /* AudioDataStreamClient in Frameworks */ = {isa = PBXBuildFile; productRef = 79C3D7DD2BC1A3CC0027390F /* AudioDataStreamClient */; };
 		79C3D7E02BC1ADBA0027390F /* WebSocketClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 79C3D7DF2BC1ADBA0027390F /* WebSocketClient.swift */; };
+		79EBD2A22DBABDB100600975 /* IsMutedView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 79EBD2A12DBABDB100600975 /* IsMutedView.swift */; };
+		79EBD2A42DBABE6F00600975 /* AudioRecorderClient in Frameworks */ = {isa = PBXBuildFile; productRef = 79EBD2A32DBABE6F00600975 /* AudioRecorderClient */; };
+		79FB3BD52D899210001EB280 /* StreamToSFSpeech.swift in Sources */ = {isa = PBXBuildFile; fileRef = 79FB3BD42D899210001EB280 /* StreamToSFSpeech.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -28,6 +31,8 @@
 		79C3D7D42BC1A3790027390F /* Preview Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = "Preview Assets.xcassets"; sourceTree = "<group>"; };
 		79C3D7DB2BC1A39A0027390F /* AudioRecorder */ = {isa = PBXFileReference; lastKnownFileType = wrapper; name = AudioRecorder; path = ../..; sourceTree = "<group>"; };
 		79C3D7DF2BC1ADBA0027390F /* WebSocketClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebSocketClient.swift; sourceTree = "<group>"; };
+		79EBD2A12DBABDB100600975 /* IsMutedView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IsMutedView.swift; sourceTree = "<group>"; };
+		79FB3BD42D899210001EB280 /* StreamToSFSpeech.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StreamToSFSpeech.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -37,6 +42,7 @@
 			files = (
 				79C3D7DE2BC1A3CC0027390F /* AudioDataStreamClient in Frameworks */,
 				791D89D42CB720D7007E8D79 /* DeepgramDependency in Frameworks */,
+				79EBD2A42DBABE6F00600975 /* AudioRecorderClient in Frameworks */,
 				791D89D22CB720D7007E8D79 /* Deepgram in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -72,6 +78,8 @@
 				79C3D7D22BC1A3790027390F /* AudioRecorderExamples.entitlements */,
 				79C3D7D32BC1A3790027390F /* Preview Content */,
 				79C3D7DF2BC1ADBA0027390F /* WebSocketClient.swift */,
+				79FB3BD42D899210001EB280 /* StreamToSFSpeech.swift */,
+				79EBD2A12DBABDB100600975 /* IsMutedView.swift */,
 			);
 			path = AudioRecorderExamples;
 			sourceTree = "<group>";
@@ -111,6 +119,7 @@
 				79C3D7DD2BC1A3CC0027390F /* AudioDataStreamClient */,
 				791D89D12CB720D7007E8D79 /* Deepgram */,
 				791D89D32CB720D7007E8D79 /* DeepgramDependency */,
+				79EBD2A32DBABE6F00600975 /* AudioRecorderClient */,
 			);
 			productName = AudioRecorderExamples;
 			productReference = 79C3D7C92BC1A3780027390F /* AudioRecorderExamples.app */;
@@ -124,7 +133,7 @@
 			attributes = {
 				BuildIndependentTargetsInParallel = 1;
 				LastSwiftUpdateCheck = 1530;
-				LastUpgradeCheck = 1530;
+				LastUpgradeCheck = 1630;
 				TargetAttributes = {
 					79C3D7C82BC1A3780027390F = {
 						CreatedOnToolsVersion = 15.3;
@@ -171,6 +180,8 @@
 			files = (
 				792057112D4FFB480057B2B0 /* StreamVADView.swift in Sources */,
 				79C3D7CF2BC1A3780027390F /* ContentView.swift in Sources */,
+				79EBD2A22DBABDB100600975 /* IsMutedView.swift in Sources */,
+				79FB3BD52D899210001EB280 /* StreamToSFSpeech.swift in Sources */,
 				79C3D7CD2BC1A3780027390F /* AudioRecorderExamplesApp.swift in Sources */,
 				79C3D7E02BC1ADBA0027390F /* WebSocketClient.swift in Sources */,
 			);
@@ -213,7 +224,9 @@
 				CLANG_WARN_UNREACHABLE_CODE = YES;
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COPY_PHASE_STRIP = NO;
+				DEAD_CODE_STRIPPING = YES;
 				DEBUG_INFORMATION_FORMAT = dwarf;
+				DEVELOPMENT_TEAM = QH8XT2FZ8W;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_TESTABILITY = YES;
 				ENABLE_USER_SCRIPT_SANDBOXING = YES;
@@ -274,7 +287,9 @@
 				CLANG_WARN_UNREACHABLE_CODE = YES;
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COPY_PHASE_STRIP = NO;
+				DEAD_CODE_STRIPPING = YES;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				DEVELOPMENT_TEAM = QH8XT2FZ8W;
 				ENABLE_NS_ASSERTIONS = NO;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_USER_SCRIPT_SANDBOXING = YES;
@@ -301,8 +316,8 @@
 				CODE_SIGN_ENTITLEMENTS = AudioRecorderExamples/AudioRecorderExamples.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
+				DEAD_CODE_STRIPPING = YES;
 				DEVELOPMENT_ASSET_PATHS = "\"AudioRecorderExamples/Preview Content\"";
-				DEVELOPMENT_TEAM = QH8XT2FZ8W;
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
@@ -341,8 +356,8 @@
 				CODE_SIGN_ENTITLEMENTS = AudioRecorderExamples/AudioRecorderExamples.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
+				DEAD_CODE_STRIPPING = YES;
 				DEVELOPMENT_ASSET_PATHS = "\"AudioRecorderExamples/Preview Content\"";
-				DEVELOPMENT_TEAM = QH8XT2FZ8W;
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
@@ -415,6 +430,10 @@
 		79C3D7DD2BC1A3CC0027390F /* AudioDataStreamClient */ = {
 			isa = XCSwiftPackageProductDependency;
 			productName = AudioDataStreamClient;
+		};
+		79EBD2A32DBABE6F00600975 /* AudioRecorderClient */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = AudioRecorderClient;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};
