@@ -9,10 +9,10 @@ import SwiftUI
 struct AudioRecorderExamplesApp: App {
     var body: some Scene {
         WindowGroup {
-            // ContentView()
+             ContentView()
 //            StreamVADView()
 //            StreamToSFSpeech()
-            IsMutedView()
+//            IsMutedView()
         }
     }
 }

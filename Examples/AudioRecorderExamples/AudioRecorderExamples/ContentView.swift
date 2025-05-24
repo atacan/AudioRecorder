@@ -5,6 +5,7 @@
 
 import SwiftUI
 import AudioDataStreamClient
+import AudioRecorderClient
 import Dependencies
 import AVFoundation
 import Deepgram
@@ -17,8 +18,50 @@ private let apiKey = "Token "
 class ContentModel {
     var dataCount = 0
     var data = Data()
+    var availableMicrophones: [Microphone] = []
+    var selectedMicrophone: Microphone?
+    var isRecording = false
     let task: Task<(), any Error>? = nil
 
+    init() {
+        loadMicrophones()
+    }
+
+    func loadMicrophones() {
+        @Dependency(\.audioRecorder) var audioRecorder
+        Task {
+            let mics = await audioRecorder.getAvailableMicrophones()
+            await MainActor.run {
+                self.availableMicrophones = mics
+                self.selectedMicrophone = mics.first
+            }
+        }
+    }
+
+    func startRecording() {
+        @Dependency(\.audioRecorder) var audioRecorder
+        Task {
+            let url = URL.documentsDirectory.appendingPathComponent("recording.wav")
+            do {
+                let success = try await audioRecorder.startRecording(url, true, selectedMicrophone)
+                await MainActor.run {
+                    self.isRecording = success
+                }
+            } catch {
+                print("Failed to start recording: \(error)")
+            }
+        }
+    }
+
+    func stopRecording() {
+        @Dependency(\.audioRecorder) var audioRecorder
+        Task {
+            await audioRecorder.stopRecording()
+            await MainActor.run {
+                self.isRecording = false
+            }
+        }
+    }
 
     func start() {
         @Dependency(\.audioDataStream) var audioDataStreamClient
@@ -137,23 +180,61 @@ struct ContentView: View {
     @State var model = ContentModel()
 
     var body: some View {
-        Button {
-            model.start()
-        } label: {
+        VStack(spacing: 20) {
+            // Microphone Selection
             VStack {
-                Image(systemName: "globe")
-                    .imageScale(.large)
-                    .foregroundStyle(.tint)
-                Text("\(model.dataCount)")
+                Text("Select Microphone")
+                    .font(.headline)
+                
+                Picker("Microphone", selection: $model.selectedMicrophone) {
+                    ForEach(model.availableMicrophones, id: \.id) { microphone in
+                        Text(microphone.name).tag(microphone as Microphone?)
+                    }
+                }
+                .pickerStyle(MenuPickerStyle())
+                .disabled(model.isRecording)
             }
-            .padding()
-        } // <-Button
+            
+            // Recording Controls
+            VStack {
+                if model.isRecording {
+                    Button("Stop Recording") {
+                        model.stopRecording()
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .controlSize(.large)
+                } else {
+                    Button("Start Recording") {
+                        model.startRecording()
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .controlSize(.large)
+                    .disabled(model.selectedMicrophone == nil)
+                }
+            }
+            
+            Divider()
+            
+            // Original streaming example
+            Button {
+                model.start()
+            } label: {
+                VStack {
+                    Image(systemName: "globe")
+                        .imageScale(.large)
+                        .foregroundStyle(.tint)
+                    Text("\(model.dataCount)")
+                }
+                .padding()
+            } // <-Button
 
-        Button {
-            model.stop()
-        } label: {
-            Text("Stop")
-        } // <-Button
+            Button {
+                model.stop()
+            } label: {
+                Text("Stop")
+            } // <-Button
+        }
+        .padding()
     }
 }
 

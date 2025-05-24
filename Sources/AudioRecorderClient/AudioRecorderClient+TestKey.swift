@@ -10,7 +10,7 @@ extension AudioRecorderClient: TestDependencyKey {
         return Self(
             currentTime: { await currentTime.value },
             requestRecordPermission: { true },
-            startRecording: { _,_  in
+            startRecording: { _, _, _ in
                 await isRecording.setValue(true)
                 while await isRecording.value {
                     try await Task.sleep(for: .seconds(1))
@@ -23,6 +23,12 @@ extension AudioRecorderClient: TestDependencyKey {
             stopRecording: {
                 await isRecording.setValue(false)
                 await currentTime.setValue(0)
+            },
+            getAvailableMicrophones: {
+                return [
+                    Microphone(id: "1", name: "Built-in Microphone"),
+                    Microphone(id: "2", name: "External Microphone")
+                ]
             }
         )
     }
@@ -35,6 +41,7 @@ extension AudioRecorderClient: TestDependencyKey {
         startRecording: unimplemented("\(Self.self).startRecording", placeholder: false),
         pauseRecording: unimplemented("\(Self.self).pauseRecording"),
         resumeRecording: unimplemented("\(Self.self).resumeRecording"),
-        stopRecording: unimplemented("\(Self.self).stopRecording")
+        stopRecording: unimplemented("\(Self.self).stopRecording"),
+        getAvailableMicrophones: unimplemented("\(Self.self).getAvailableMicrophones", placeholder: [])
     )
 }
