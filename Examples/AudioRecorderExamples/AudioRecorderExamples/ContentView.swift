@@ -42,9 +42,9 @@ class ContentModel {
             urlRequest.setValue(apiKey, forHTTPHeaderField: "Authorization")
 
             let actions = await webSocketClient.open(
-                id: WebSocketClient.ID(),
-                url: urlRequest,
-                protocols: []
+                WebSocketClient.ID(),
+                urlRequest,
+                []
             )
             await withThrowingTaskGroup(of: Void.self) { group in
                 for await action in actions {
@@ -59,8 +59,8 @@ class ContentModel {
                         group.addTask {
                             while !Task.isCancelled {
                                 try await clock.sleep(for: .seconds(1))
-                                try? await webSocketClient.sendPing(id: WebSocketClient.ID())
-                                try await webSocketClient.send(id: WebSocketClient.ID(), message: .string(##"{"type": "KeepAlive"}"##))
+                                try? await webSocketClient.sendPing(WebSocketClient.ID())
+                                try await webSocketClient.send(WebSocketClient.ID(), .string(##"{"type": "KeepAlive"}"##))
                             }
                         }
                         group.addTask {
@@ -69,11 +69,11 @@ class ContentModel {
                 //                dump(data)
 //                                dataCount += data.count
 //                                self.data += data
-                                try await webSocketClient.send(id: WebSocketClient.ID(), message: .data(data))
+                                try await webSocketClient.send(WebSocketClient.ID(), .data(data))
                             }
                         }
                         group.addTask {
-                            for await result in try await webSocketClient.receive(id: WebSocketClient.ID()) {
+                            for await result in try await webSocketClient.receive(WebSocketClient.ID()) {
 //                                await send(.receivedSocketMessage(result))
                                 switch result {
                                 case .success(let message):
@@ -115,7 +115,7 @@ class ContentModel {
         Task {
             await audioDataStreamClient.stop()
             
-            try await webSocketClient.send(id: WebSocketClient.ID(), message: .string("""
+            try await webSocketClient.send(WebSocketClient.ID(), .string("""
                 {
                   "type": "Finalize"
                 }

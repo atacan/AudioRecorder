@@ -12,7 +12,10 @@ struct AudioRecorderExamplesApp: App {
             // ContentView()
 //            StreamVADView()
 //            StreamToSFSpeech()
-            IsMutedView()
+//            IsMutedView()
+//            SpecificMicrophoneEngineRecorderView()
+//            SpecificMicrophoneRecorderWrapperView()
+            OpenAIRealTimeTranscription()
         }
     }
 }
