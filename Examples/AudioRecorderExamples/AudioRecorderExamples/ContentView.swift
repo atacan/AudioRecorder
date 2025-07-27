@@ -11,7 +11,7 @@ import Deepgram
 import DeepgramDependency
 import WebSocketDependency
 
-private let apiKey = "Token "
+private let apiKey = "Token [REDACTED]"
 
 @Observable
 class ContentModel {

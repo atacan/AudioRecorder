@@ -15,7 +15,8 @@ struct AudioRecorderExamplesApp: App {
 //            IsMutedView()
 //            SpecificMicrophoneEngineRecorderView()
 //            SpecificMicrophoneRecorderWrapperView()
-            OpenAIRealTimeTranscription()
+//            OpenAIRealTimeTranscription()
+            AnotherRealTimeTranscription()
         }
     }
 }
