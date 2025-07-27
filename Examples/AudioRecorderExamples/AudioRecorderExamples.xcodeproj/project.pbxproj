@@ -16,9 +16,18 @@
 		79C3D7D52BC1A3790027390F /* Preview Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 79C3D7D42BC1A3790027390F /* Preview Assets.xcassets */; };
 		79C3D7DE2BC1A3CC0027390F /* AudioDataStreamClient in Frameworks */ = {isa = PBXBuildFile; productRef = 79C3D7DD2BC1A3CC0027390F /* AudioDataStreamClient */; };
 		79C3D7E02BC1ADBA0027390F /* WebSocketClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 79C3D7DF2BC1ADBA0027390F /* WebSocketClient.swift */; };
+		79D8F5DF2E0E841200081D54 /* WSClient in Frameworks */ = {isa = PBXBuildFile; productRef = 79D8F5DE2E0E841200081D54 /* WSClient */; };
+		79D8F5E12E0E841200081D54 /* WSCompression in Frameworks */ = {isa = PBXBuildFile; productRef = 79D8F5E02E0E841200081D54 /* WSCompression */; };
+		79D8F5E32E0E841200081D54 /* WSCore in Frameworks */ = {isa = PBXBuildFile; productRef = 79D8F5E22E0E841200081D54 /* WSCore */; };
 		79EBD2A22DBABDB100600975 /* IsMutedView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 79EBD2A12DBABDB100600975 /* IsMutedView.swift */; };
 		79EBD2A42DBABE6F00600975 /* AudioRecorderClient in Frameworks */ = {isa = PBXBuildFile; productRef = 79EBD2A32DBABE6F00600975 /* AudioRecorderClient */; };
+		79F1D09D2DE33A9E0092DFC0 /* SpecificMicrophoneRecorder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 79F1D09C2DE33A9E0092DFC0 /* SpecificMicrophoneRecorder.swift */; };
+		79F1D09F2DE344630092DFC0 /* AudioError.swift in Sources */ = {isa = PBXBuildFile; fileRef = 79F1D09E2DE344630092DFC0 /* AudioError.swift */; };
 		79FB3BD52D899210001EB280 /* StreamToSFSpeech.swift in Sources */ = {isa = PBXBuildFile; fileRef = 79FB3BD42D899210001EB280 /* StreamToSFSpeech.swift */; };
+		79FC3B1D2E06D920006623E0 /* OpenAIAsyncHTTPClient in Frameworks */ = {isa = PBXBuildFile; productRef = 79FC3B1C2E06D920006623E0 /* OpenAIAsyncHTTPClient */; };
+		79FC3B1F2E06D920006623E0 /* SwiftOpenAITypes in Frameworks */ = {isa = PBXBuildFile; productRef = 79FC3B1E2E06D920006623E0 /* SwiftOpenAITypes */; };
+		79FC3B212E06D94A006623E0 /* OpenAIRealTimeTranscription.swift in Sources */ = {isa = PBXBuildFile; fileRef = 79FC3B202E06D94A006623E0 /* OpenAIRealTimeTranscription.swift */; };
+		79FC3B242E06DA3B006623E0 /* Starscream in Frameworks */ = {isa = PBXBuildFile; productRef = 79FC3B232E06DA3B006623E0 /* Starscream */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -32,7 +41,10 @@
 		79C3D7DB2BC1A39A0027390F /* AudioRecorder */ = {isa = PBXFileReference; lastKnownFileType = wrapper; name = AudioRecorder; path = ../..; sourceTree = "<group>"; };
 		79C3D7DF2BC1ADBA0027390F /* WebSocketClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebSocketClient.swift; sourceTree = "<group>"; };
 		79EBD2A12DBABDB100600975 /* IsMutedView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IsMutedView.swift; sourceTree = "<group>"; };
+		79F1D09C2DE33A9E0092DFC0 /* SpecificMicrophoneRecorder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpecificMicrophoneRecorder.swift; sourceTree = "<group>"; };
+		79F1D09E2DE344630092DFC0 /* AudioError.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioError.swift; sourceTree = "<group>"; };
 		79FB3BD42D899210001EB280 /* StreamToSFSpeech.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StreamToSFSpeech.swift; sourceTree = "<group>"; };
+		79FC3B202E06D94A006623E0 /* OpenAIRealTimeTranscription.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OpenAIRealTimeTranscription.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -40,10 +52,16 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				79D8F5E12E0E841200081D54 /* WSCompression in Frameworks */,
+				79FC3B242E06DA3B006623E0 /* Starscream in Frameworks */,
+				79D8F5DF2E0E841200081D54 /* WSClient in Frameworks */,
+				79FC3B1F2E06D920006623E0 /* SwiftOpenAITypes in Frameworks */,
 				79C3D7DE2BC1A3CC0027390F /* AudioDataStreamClient in Frameworks */,
+				79D8F5E32E0E841200081D54 /* WSCore in Frameworks */,
 				791D89D42CB720D7007E8D79 /* DeepgramDependency in Frameworks */,
 				79EBD2A42DBABE6F00600975 /* AudioRecorderClient in Frameworks */,
 				791D89D22CB720D7007E8D79 /* Deepgram in Frameworks */,
+				79FC3B1D2E06D920006623E0 /* OpenAIAsyncHTTPClient in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -71,6 +89,8 @@
 		79C3D7CB2BC1A3780027390F /* AudioRecorderExamples */ = {
 			isa = PBXGroup;
 			children = (
+				79F1D09E2DE344630092DFC0 /* AudioError.swift */,
+				79F1D09C2DE33A9E0092DFC0 /* SpecificMicrophoneRecorder.swift */,
 				79C3D7CC2BC1A3780027390F /* AudioRecorderExamplesApp.swift */,
 				792057102D4FFB480057B2B0 /* StreamVADView.swift */,
 				79C3D7CE2BC1A3780027390F /* ContentView.swift */,
@@ -80,6 +100,7 @@
 				79C3D7DF2BC1ADBA0027390F /* WebSocketClient.swift */,
 				79FB3BD42D899210001EB280 /* StreamToSFSpeech.swift */,
 				79EBD2A12DBABDB100600975 /* IsMutedView.swift */,
+				79FC3B202E06D94A006623E0 /* OpenAIRealTimeTranscription.swift */,
 			);
 			path = AudioRecorderExamples;
 			sourceTree = "<group>";
@@ -120,6 +141,12 @@
 				791D89D12CB720D7007E8D79 /* Deepgram */,
 				791D89D32CB720D7007E8D79 /* DeepgramDependency */,
 				79EBD2A32DBABE6F00600975 /* AudioRecorderClient */,
+				79FC3B1C2E06D920006623E0 /* OpenAIAsyncHTTPClient */,
+				79FC3B1E2E06D920006623E0 /* SwiftOpenAITypes */,
+				79FC3B232E06DA3B006623E0 /* Starscream */,
+				79D8F5DE2E0E841200081D54 /* WSClient */,
+				79D8F5E02E0E841200081D54 /* WSCompression */,
+				79D8F5E22E0E841200081D54 /* WSCore */,
 			);
 			productName = AudioRecorderExamples;
 			productReference = 79C3D7C92BC1A3780027390F /* AudioRecorderExamples.app */;
@@ -151,6 +178,9 @@
 			mainGroup = 79C3D7C02BC1A3780027390F;
 			packageReferences = (
 				791D89D02CB720D7007E8D79 /* XCLocalSwiftPackageReference "../../../Deepgram" */,
+				79FC3B1B2E06D920006623E0 /* XCLocalSwiftPackageReference "../../../swift-openai-api" */,
+				79FC3B222E06DA3B006623E0 /* XCRemoteSwiftPackageReference "Starscream" */,
+				79D8F5DD2E0E841200081D54 /* XCRemoteSwiftPackageReference "swift-websocket" */,
 			);
 			productRefGroup = 79C3D7CA2BC1A3780027390F /* Products */;
 			projectDirPath = "";
@@ -182,8 +212,11 @@
 				79C3D7CF2BC1A3780027390F /* ContentView.swift in Sources */,
 				79EBD2A22DBABDB100600975 /* IsMutedView.swift in Sources */,
 				79FB3BD52D899210001EB280 /* StreamToSFSpeech.swift in Sources */,
+				79F1D09D2DE33A9E0092DFC0 /* SpecificMicrophoneRecorder.swift in Sources */,
 				79C3D7CD2BC1A3780027390F /* AudioRecorderExamplesApp.swift in Sources */,
+				79FC3B212E06D94A006623E0 /* OpenAIRealTimeTranscription.swift in Sources */,
 				79C3D7E02BC1ADBA0027390F /* WebSocketClient.swift in Sources */,
+				79F1D09F2DE344630092DFC0 /* AudioError.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -416,7 +449,30 @@
 			isa = XCLocalSwiftPackageReference;
 			relativePath = ../../../Deepgram;
 		};
+		79FC3B1B2E06D920006623E0 /* XCLocalSwiftPackageReference "../../../swift-openai-api" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = "../../../swift-openai-api";
+		};
 /* End XCLocalSwiftPackageReference section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		79D8F5DD2E0E841200081D54 /* XCRemoteSwiftPackageReference "swift-websocket" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/hummingbird-project/swift-websocket";
+			requirement = {
+				branch = "ws-fixes";
+				kind = branch;
+			};
+		};
+		79FC3B222E06DA3B006623E0 /* XCRemoteSwiftPackageReference "Starscream" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/daltoniam/Starscream";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 4.0.8;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
 		791D89D12CB720D7007E8D79 /* Deepgram */ = {
@@ -431,9 +487,37 @@
 			isa = XCSwiftPackageProductDependency;
 			productName = AudioDataStreamClient;
 		};
+		79D8F5DE2E0E841200081D54 /* WSClient */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 79D8F5DD2E0E841200081D54 /* XCRemoteSwiftPackageReference "swift-websocket" */;
+			productName = WSClient;
+		};
+		79D8F5E02E0E841200081D54 /* WSCompression */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 79D8F5DD2E0E841200081D54 /* XCRemoteSwiftPackageReference "swift-websocket" */;
+			productName = WSCompression;
+		};
+		79D8F5E22E0E841200081D54 /* WSCore */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 79D8F5DD2E0E841200081D54 /* XCRemoteSwiftPackageReference "swift-websocket" */;
+			productName = WSCore;
+		};
 		79EBD2A32DBABE6F00600975 /* AudioRecorderClient */ = {
 			isa = XCSwiftPackageProductDependency;
 			productName = AudioRecorderClient;
+		};
+		79FC3B1C2E06D920006623E0 /* OpenAIAsyncHTTPClient */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = OpenAIAsyncHTTPClient;
+		};
+		79FC3B1E2E06D920006623E0 /* SwiftOpenAITypes */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = SwiftOpenAITypes;
+		};
+		79FC3B232E06DA3B006623E0 /* Starscream */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 79FC3B222E06DA3B006623E0 /* XCRemoteSwiftPackageReference "Starscream" */;
+			productName = Starscream;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};
