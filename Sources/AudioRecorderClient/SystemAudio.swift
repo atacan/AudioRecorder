@@ -4,20 +4,37 @@
 	
 
 
-import Cocoa // Or import AppKit if not using Cocoa umbrella
+// Import necessary frameworks for each platform
+#if os(macOS)
+import Cocoa
 import CoreAudio
-import os.log // For cleaner logging
+#else // iOS, tvOS, watchOS
+import UIKit
+import AVFoundation
+import MediaPlayer
+#endif
+
+import os.log
 
 public enum AudioError: Error {
+    // macOS specific errors
     case propertyNotFound
     case propertyNotSettable
-    case osStatusError(OSStatus)
     case noDefaultDevice
+
+    // Generic/cross-platform errors
+    case osStatusError(OSStatus)
+    case notSupportedOnPlatform
+    case couldNotActivateAudioSession
 }
 
 public struct SystemAudio {
 
+    // MARK: - Is Muted
+
     public static func isMuted() throws -> Bool {
+        #if os(macOS)
+        // --- macOS Implementation (Original Logic) ---
         // 1. Get the default output device ID
         var defaultOutputDeviceID: AudioDeviceID = kAudioObjectUnknown
         var propertySize = UInt32(MemoryLayout<AudioDeviceID>.size)
@@ -79,9 +96,37 @@ public struct SystemAudio {
 
         // 3. Return the boolean state
         return isMuted == 1
+
+        #else // iOS, tvOS, watchOS
+        // --- iOS Equivalent Implementation ---
+        // On iOS, we check the system's output volume.
+        // There is no direct API to check the hardware mute state.
+
+        // It's good practice to ensure the audio session is active.
+        let audioSession = AVAudioSession.sharedInstance()
+        do {
+            try audioSession.setCategory(.ambient) // Use a category that doesn't interrupt other audio
+            try audioSession.setActive(true)
+        } catch {
+            os_log("Failed to activate audio session: %{public}@", log: .default, type: .error, error.localizedDescription)
+            throw AudioError.couldNotActivateAudioSession
+        }
+
+        // outputVolume is a value from 0.0 (silent) to 1.0 (full volume).
+        let isEffectivelyMuted = audioSession.outputVolume == 0.0
+
+        // Deactivate the session if your app doesn't need it continuously
+        // try? audioSession.setActive(false)
+
+        return isEffectivelyMuted
+        #endif
     }
-    
+
+    // MARK: - Set Muted
+
     public static func setMuted(_ mute: Bool) throws {
+        #if os(macOS)
+        // --- macOS Implementation (Original Logic) ---
         let defaultOutputDeviceID = try getDefaultOutputDeviceID()
 
         var newMuteValue: UInt32 = mute ? 1 : 0 // 1 = mute, 0 = unmute
@@ -95,7 +140,6 @@ public struct SystemAudio {
 
         // Check if the property exists first
         guard AudioObjectHasProperty(defaultOutputDeviceID, &mutePropertyAddress) else {
-             os_log("Device %{public}d does not support the SET mute property.", log: .default, type: .error, defaultOutputDeviceID)
              throw AudioError.propertyNotFound
         }
 
@@ -130,9 +174,20 @@ public struct SystemAudio {
         }
 
         os_log("Successfully set mute state for device %{public}d to: %{public}@", log: .default, type: .info, defaultOutputDeviceID, mute ? "MUTED" : "UNMUTED")
+
+        #else // iOS, tvOS, watchOS
+        // --- iOS Equivalent Implementation ---
+        // An app CANNOT programmatically set the system volume or mute state on iOS.
+        // This is a system-level restriction. The only way is to guide the user
+        // to change the volume themselves, typically by showing an MPVolumeView.
+        // Therefore, this function will always fail on iOS.
+        os_log("Setting system mute is not supported on iOS.", log: .default, type: .error)
+        throw AudioError.notSupportedOnPlatform
+        #endif
     }
 
-    // --- Helper function to get the default output device ID ---
+    // MARK: - macOS Helper
+    #if os(macOS)
     private static func getDefaultOutputDeviceID() throws -> AudioDeviceID {
         var defaultOutputDeviceID: AudioDeviceID = kAudioObjectUnknown
         var propertySize = UInt32(MemoryLayout<AudioDeviceID>.size)
@@ -163,5 +218,5 @@ public struct SystemAudio {
 
         return defaultOutputDeviceID
     }
+    #endif
 }
-
