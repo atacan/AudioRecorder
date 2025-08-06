@@ -6,7 +6,7 @@ import SystemSoundClient
 public struct AudioRecorderClient {
     public var currentTime: @Sendable () async -> TimeInterval?
     public var requestRecordPermission: @Sendable () async -> Bool
-    public var startRecording: @Sendable (URL, _ playSound: Bool) async throws -> Bool
+    public var startRecording: @Sendable (URL, _ onRecordingStart: (@Sendable () -> Void)?) async throws -> Bool
     public var pauseRecording: @Sendable () async -> Void
     public var resumeRecording: @Sendable () async -> Void
     public var stopRecording: @Sendable () async -> Void
@@ -20,7 +20,7 @@ extension AudioRecorderClient: DependencyKey {
         return Self(
             currentTime: { await audioRecorder.currentTime },
             requestRecordPermission: { await AudioRecorder.requestPermission() },
-            startRecording: { url, playSound in try await audioRecorder.start(url: url, playSound: playSound) },
+            startRecording: { url, onRecordingStart in try await audioRecorder.start(url: url, onRecordingStart: onRecordingStart) },
             pauseRecording: { await audioRecorder.pause() },
             resumeRecording: { await audioRecorder.resume() },
             stopRecording: { await audioRecorder.stop() }
@@ -72,7 +72,7 @@ private actor AudioRecorder {
         #endif
     }
 
-    func start(url: URL, playSound: Bool = false) async throws -> Bool {
+    func start(url: URL, onRecordingStart: (@Sendable () -> Void)? = nil) async throws -> Bool {
         stop()
 
         let stream = AsyncThrowingStream<Bool, Error> { continuation in
@@ -115,10 +115,7 @@ private actor AudioRecorder {
                 #endif
                 self.recorder?.record()
                 
-                if playSound {
-                    @Dependency(\.systemSound) var systemSoundClient
-                    systemSoundClient.play(.begin_record)
-                }
+                onRecordingStart?()
             } catch {
                 continuation.finish(throwing: error)
             }
