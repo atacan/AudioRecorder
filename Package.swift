@@ -18,8 +18,7 @@ let package = Package(
         .package(url: "https://github.com/pointfreeco/swift-dependencies", from: "1.6.2"),
         .package(url: "https://github.com/pointfreeco/swift-case-paths", from: "1.5.6"),
         .package(url: "https://github.com/argmaxinc/WhisperKit.git", from: "0.10.2"),
-        .package(url: "git@github.com:atacan/SystemSoundDependency.git", branch: "main"),
-        // .package(path: "../SystemSoundDependency"),
+        .package(path: "../SystemSoundDependency"),
     ],
     targets: [
         .target(

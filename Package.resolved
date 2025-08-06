@@ -73,15 +73,6 @@
       }
     },
     {
-      "identity" : "systemsounddependency",
-      "kind" : "remoteSourceControl",
-      "location" : "git@github.com:atacan/SystemSoundDependency.git",
-      "state" : {
-        "branch" : "main",
-        "revision" : "6b73d94160acfc510ed46a6985c6d4531536d651"
-      }
-    },
-    {
       "identity" : "whisperkit",
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/argmaxinc/WhisperKit.git",

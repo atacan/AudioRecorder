@@ -6,7 +6,7 @@ import SystemSoundClient
 public struct AudioRecorderClient {
     public var currentTime: @Sendable () async -> TimeInterval?
     public var requestRecordPermission: @Sendable () async -> Bool
-    public var startRecording: @Sendable (URL, Bool) async throws -> Bool
+    public var startRecording: @Sendable (URL, _ playSound: Bool) async throws -> Bool
     public var pauseRecording: @Sendable () async -> Void
     public var resumeRecording: @Sendable () async -> Void
     public var stopRecording: @Sendable () async -> Void
@@ -104,7 +104,7 @@ private actor AudioRecorder {
                 self.recorder = recorder
                 recorder.delegate = self.delegate
 
-                continuation.onTermination = { [recorder = UncheckedSendable(recorder)] _ in
+                continuation.onTermination = { [recorder = UncheckedSendable(recorder)] (_: AsyncThrowingStream<Bool, Error>.Continuation.Termination) -> Void in
                     recorder.wrappedValue.stop()
                 }
                 #if os(iOS)
