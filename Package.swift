@@ -18,14 +18,12 @@ let package = Package(
         .package(url: "https://github.com/pointfreeco/swift-dependencies", from: "1.6.2"),
         .package(url: "https://github.com/pointfreeco/swift-case-paths", from: "1.5.6"),
         .package(url: "https://github.com/argmaxinc/WhisperKit.git", from: "0.10.2"),
-        .package(path: "../SystemSoundDependency"),
     ],
     targets: [
         .target(
             name: "AudioRecorderClient",
             dependencies: [
                 .product(name: "Dependencies", package: "swift-dependencies"),
-                .product(name: "SystemSoundClient", package: "SystemSoundDependency"),
             ]
         ),
         .target(
@@ -34,7 +32,6 @@ let package = Package(
                 .product(name: "Dependencies", package: "swift-dependencies"),
                 .product(name: "DependenciesMacros", package: "swift-dependencies"),
                 .product(name: "CasePaths", package: "swift-case-paths"),
-                .product(name: "SystemSoundClient", package: "SystemSoundDependency"),
                 .product(name: "WhisperKit", package: "WhisperKit"),
             ]
         ),

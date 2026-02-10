@@ -1,7 +1,6 @@
 import Dependencies
 import Foundation
 import XCTestDynamicOverlay
-import SystemSoundClient
 
 public struct AudioRecorderClient {
     public var currentTime: @Sendable () async -> TimeInterval?
