@@ -6,7 +6,7 @@
 import SwiftUI
 import SwiftOpenAITypes
 import OpenAIAsyncHTTPClient
-import AudioDataStreamClient
+import AudioRecorderClient
 import Dependencies
 import Foundation
 import Starscream

@@ -5,19 +5,22 @@
 
 import Dependencies
 import SwiftUI
-import AudioDataStreamClient
+import AudioRecorderClient
 import Speech
 
 struct StreamToSFSpeech: View {
     var body: some View {
         Button("Record") {
-            @Dependency(\.audioProcessor) var audioProcessor
-            let stream = audioProcessor.startRecording(.init())
-            
             Task {
-                for try await chunk in stream {
-                    print("Received chunk with \(chunk.floats.count) samples")
-                    let text = try await transcribeAudioSamples(chunk.floats)
+                @Dependency(\.audioRecorder) var audioRecorder
+                let stream = try await audioRecorder.live.start(.init(mode: .vad(.init())))
+
+                for try await payload in stream {
+                    guard case let .vadChunk(samples) = payload else {
+                        continue
+                    }
+                    print("Received chunk with \(samples.count) samples")
+                    let text = try await transcribeAudioSamples(samples)
                     print(text)
                 }
             }

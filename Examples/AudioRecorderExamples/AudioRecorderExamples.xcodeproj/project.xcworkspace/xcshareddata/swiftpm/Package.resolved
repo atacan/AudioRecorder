@@ -46,15 +46,6 @@
       }
     },
     {
-      "identity" : "swift-argument-parser",
-      "kind" : "remoteSourceControl",
-      "location" : "https://github.com/apple/swift-argument-parser.git",
-      "state" : {
-        "revision" : "c8ed701b513cf5177118a175d85fbbbcd707ab41",
-        "version" : "1.3.0"
-      }
-    },
-    {
       "identity" : "swift-async-algorithms",
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/apple/swift-async-algorithms.git",
@@ -70,15 +61,6 @@
       "state" : {
         "revision" : "cd142fd2f64be2100422d658e7411e39489da985",
         "version" : "1.2.0"
-      }
-    },
-    {
-      "identity" : "swift-case-paths",
-      "kind" : "remoteSourceControl",
-      "location" : "https://github.com/pointfreeco/swift-case-paths",
-      "state" : {
-        "revision" : "19b7263bacb9751f151ec0c93ec816fe1ef67c7b",
-        "version" : "1.6.1"
       }
     },
     {
@@ -203,8 +185,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/apple/swift-openapi-runtime",
       "state" : {
-        "revision" : "8f33cc5dfe81169fb167da73584b9c72c3e8bc23",
-        "version" : "1.8.2"
+        "revision" : "7cdf33371bf89b23b9cf4fd3ce8d3c825c28fbe8",
+        "version" : "1.9.0"
       }
     },
     {
@@ -244,48 +226,12 @@
       }
     },
     {
-      "identity" : "swift-transformers",
-      "kind" : "remoteSourceControl",
-      "location" : "https://github.com/huggingface/swift-transformers.git",
-      "state" : {
-        "revision" : "fc6543263e4caed9bf6107466d625cfae9357f08",
-        "version" : "0.1.8"
-      }
-    },
-    {
       "identity" : "swift-websocket",
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/hummingbird-project/swift-websocket",
       "state" : {
         "branch" : "ws-fixes",
         "revision" : "6d41efeb25c1b96f209e2e9c85afee41231516bf"
-      }
-    },
-    {
-      "identity" : "systemsounddependency",
-      "kind" : "remoteSourceControl",
-      "location" : "git@github.com:atacan/SystemSoundDependency.git",
-      "state" : {
-        "branch" : "main",
-        "revision" : "6b73d94160acfc510ed46a6985c6d4531536d651"
-      }
-    },
-    {
-      "identity" : "websocketdependency",
-      "kind" : "remoteSourceControl",
-      "location" : "git@github.com:atacan/WebSocketDependency.git",
-      "state" : {
-        "branch" : "main",
-        "revision" : "defb93c858ae1a49fc699d48f38375a8d296bd28"
-      }
-    },
-    {
-      "identity" : "whisperkit",
-      "kind" : "remoteSourceControl",
-      "location" : "https://github.com/argmaxinc/WhisperKit.git",
-      "state" : {
-        "revision" : "600303e5e5f1861427ba57804ea3a5310466afe6",
-        "version" : "0.10.2"
       }
     },
     {

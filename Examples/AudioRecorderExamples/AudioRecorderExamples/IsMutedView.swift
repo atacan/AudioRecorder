@@ -52,6 +52,10 @@ func checkMuteStatus() {
             print("Error: Could not find the default audio output device.")
         case .propertyNotSettable:
             print("Error: propertyNotSettable")
+        case .notSupportedOnPlatform:
+            print("Error: notSupportedOnPlatform")
+        case .couldNotActivateAudioSession:
+            print("Error: couldNotActivateAudioSession")
         }
         // Handle the error appropriately in your UI
     } catch {
@@ -78,6 +82,10 @@ func unmuteSpeakers() {
             print("Error: Cannot unmute - Core Audio OSStatus error: \(status)")
         case .noDefaultDevice:
              print("Error: Cannot unmute - Could not find the default audio output device.")
+        case .notSupportedOnPlatform:
+            print("Error: Cannot unmute - not supported on platform.")
+        case .couldNotActivateAudioSession:
+            print("Error: couldNotActivateAudioSession")
         }
     } catch {
         print("An unexpected error occurred while trying to unmute: \(error)")

@@ -3,37 +3,31 @@
 // 02.02.25
 
 
+import AVFoundation
+import AudioRecorderClient
 import Dependencies
-import SwiftUI
-import AudioDataStreamClient
 import Speech
+import SwiftUI
 
 @Observable
 final class StreamVADModel {
     @ObservationIgnored
-    @Dependency(\.continuousClock) var clock  // Controllable way to sleep a task
+    @Dependency(\.date.now) var now
     @ObservationIgnored
-    @Dependency(\.date.now) var now           // Controllable way to ask for current date
-    @ObservationIgnored
-    @Dependency(\.mainQueue) var mainQueue    // Controllable scheduling on main queue
-    @ObservationIgnored
-    @Dependency(\.uuid) var uuid              // Controllable UUID creation
-    @ObservationIgnored
-    @Dependency(\.audioProcessor) var audioProcessor
-    
+    @Dependency(\.audioRecorder) var audioRecorder
+
     private let speechRecognizer = SFSpeechRecognizer(locale: Locale(identifier: "en-US"))
     private var recognitionRequest: SFSpeechAudioBufferRecognitionRequest?
     private var recognitionTask: SFSpeechRecognitionTask?
-    private let audioEngine = AVAudioEngine()
-    
+
     var transcription: String = ""
     var isRecording: Bool = false
     var hasSpeechRecognitionPermission: Bool = false
-    
+
     init() {
         requestSpeechRecognitionPermission()
     }
-    
+
     private func requestSpeechRecognitionPermission() {
         SFSpeechRecognizer.requestAuthorization { status in
             DispatchQueue.main.async {
@@ -41,82 +35,80 @@ final class StreamVADModel {
             }
         }
     }
-    
+
     func startButtonTapped() async throws {
         isRecording = true
         transcription = ""
-        
-        let stream = audioProcessor.startRecording(.init())
-        
-        // Create a directory for our recordings if it doesn't exist
+
+        let stream = try await audioRecorder.live.start(.init(mode: .vad(.init())))
+
         let downloadsURL = FileManager.default.urls(for: .downloadsDirectory, in: .userDomainMask)[0]
         let recordingsDir = downloadsURL.appendingPathComponent("AudioRecordings", isDirectory: true)
         try? FileManager.default.createDirectory(at: recordingsDir, withIntermediateDirectories: true)
-        
-        for try await chunk in stream {
-            print("Received chunk with \(chunk.floats.count) samples")
+
+        for try await payload in stream {
+            guard case let .vadChunk(samples) = payload else {
+                continue
+            }
+
+            print("Received chunk with \(samples.count) samples")
             let timestamp = now.formatted(.dateTime.year().month().day().hour().minute().second())
             let filename = "recording_\(timestamp).wav"
                 .replacingOccurrences(of: " ", with: "_")
                 .replacingOccurrences(of: ":", with: "-")
                 .replacingOccurrences(of: ",", with: "-")
             let fileURL = recordingsDir.appendingPathComponent(filename)
-            
-            _ = try saveFloatArrayToWavFile(samples: chunk.floats, fileURL: fileURL)
+
+            _ = try saveFloatArrayToWavFile(samples: samples, fileURL: fileURL)
             print("Saved audio file: \(fileURL.path)")
-            
-            // Process each chunk separately for speech recognition
+
             if hasSpeechRecognitionPermission {
-                // Clear previous transcription
                 transcription = "Transcribing..."
-                
-                // Process each audio chunk with a new recognition request
-                try await processChunkAsSeparateTranscription(chunk.floats)
+                try await processChunkAsSeparateTranscription(samples)
             }
         }
-        
+
         isRecording = false
     }
-    
+
     private func processChunkAsSeparateTranscription(_ samples: [Float]) async throws {
-        // Cancel any previous recognition task
         recognitionTask?.cancel()
         recognitionRequest?.endAudio()
-        
-        // Create a new recognition request for this chunk
+
         let request = SFSpeechAudioBufferRecognitionRequest()
         self.recognitionRequest = request
-        
-        // Convert float array to audio buffer for speech recognition
-        let format = AVAudioFormat(standardFormatWithSampleRate: 16000, channels: 1)!
+
+        let format = AVAudioFormat(standardFormatWithSampleRate: 16_000, channels: 1)!
         let pcmBuffer = AVAudioPCMBuffer(pcmFormat: format, frameCapacity: AVAudioFrameCount(samples.count))!
-        
-        // Copy samples to the buffer
+
         for (index, sample) in samples.enumerated() {
             pcmBuffer.floatChannelData?[0][index] = sample
         }
         pcmBuffer.frameLength = AVAudioFrameCount(samples.count)
-        
-        // Add the buffer to this request
+
         request.append(pcmBuffer)
-        request.endAudio()  // Signal that we've finished adding audio to this request
-        
+        request.endAudio()
+
         return try await withCheckedThrowingContinuation { continuation in
-            // Create a local flag to track if we've already resumed
             var hasResumed = false
-            
+
             self.recognitionTask = speechRecognizer?.recognitionTask(with: request) { [weak self] result, error in
                 guard let self = self else {
                     if !hasResumed {
                         hasResumed = true
-                        continuation.resume(throwing: NSError(domain: "SpeechRecognitionError", code: 1, userInfo: [NSLocalizedDescriptionKey: "Self was deallocated"]))
+                        continuation.resume(
+                            throwing: NSError(
+                                domain: "SpeechRecognitionError",
+                                code: 1,
+                                userInfo: [NSLocalizedDescriptionKey: "Self was deallocated"]
+                            )
+                        )
                     }
                     return
                 }
-                
-                // Handle errors
+
                 if let error = error {
-                    if (error as NSError).code != 216 && !hasResumed { // Skip Cancellation errors
+                    if (error as NSError).code != 216 && !hasResumed {
                         self.transcription = "Error: \(error.localizedDescription)"
                         hasResumed = true
                         continuation.resume(throwing: error)
@@ -126,24 +118,21 @@ final class StreamVADModel {
                     }
                     return
                 }
-                
-                // Only update and resume if this is the final result and we haven't resumed yet
+
                 if let result = result, result.isFinal && !hasResumed {
                     self.transcription = result.bestTranscription.formattedString
                     hasResumed = true
                     continuation.resume()
                     return
                 }
-                
-                // If we have a result but it's not final, just update the text without resuming
+
                 if let result = result, !result.isFinal {
                     self.transcription = "Processing: " + result.bestTranscription.formattedString
                 }
             }
-            
-            // Set a timeout to ensure we don't hang indefinitely
+
             Task {
-                try? await Task.sleep(nanoseconds: 10_000_000_000) // 10 seconds timeout
+                try? await Task.sleep(nanoseconds: 10_000_000_000)
                 if !hasResumed {
                     hasResumed = true
                     self.transcription = "Transcription timed out. The audio may be too quiet or unclear."
@@ -152,11 +141,12 @@ final class StreamVADModel {
             }
         }
     }
-    
+
     func stopRecording() {
-        audioProcessor.stopRecording()
-        
-        // End recognition
+        Task {
+            try? await audioRecorder.live.stop()
+        }
+
         recognitionRequest?.endAudio()
         recognitionTask?.cancel()
         recognitionRequest = nil
@@ -167,7 +157,7 @@ final class StreamVADModel {
 
 struct StreamVADView: View {
     @State var model = StreamVADModel()
-    
+
     var body: some View {
         VStack(spacing: 20) {
             if !model.hasSpeechRecognitionPermission {
@@ -176,7 +166,7 @@ struct StreamVADView: View {
                     .multilineTextAlignment(.center)
                     .padding()
             }
-            
+
             if model.isRecording {
                 Button {
                     model.stopRecording()
@@ -204,11 +194,11 @@ struct StreamVADView: View {
                         .cornerRadius(8)
                 }
             }
-            
+
             Text("Transcription:")
                 .fontWeight(.bold)
                 .padding(.top)
-            
+
             ScrollView {
                 Text(model.transcription)
                     .padding()
@@ -216,9 +206,6 @@ struct StreamVADView: View {
             }
             .frame(maxHeight: 200)
             .border(Color.gray.opacity(0.3))
-            
-            // Keep the existing VAD recorder view
-            MyVADRecorderView()
         }
         .padding()
     }
@@ -226,4 +213,43 @@ struct StreamVADView: View {
 
 #Preview {
     StreamVADView()
+}
+
+private func saveFloatArrayToWavFile(
+    samples: [Float],
+    sampleRate: Double = 16_000,
+    fileName: String? = nil,
+    fileURL: URL? = nil
+) throws -> URL {
+    let format = AVAudioFormat(standardFormatWithSampleRate: sampleRate, channels: 1)!
+    let audioBuffer = AVAudioPCMBuffer(pcmFormat: format, frameCapacity: AVAudioFrameCount(samples.count))!
+
+    for (index, sample) in samples.enumerated() {
+        audioBuffer.floatChannelData?[0][index] = sample
+    }
+    audioBuffer.frameLength = AVAudioFrameCount(samples.count)
+
+    let targetURL: URL
+    if let fileURL {
+        targetURL = fileURL
+    } else {
+        let actualFileName = fileName ?? "recording_\(Date().timeIntervalSince1970).wav"
+        let downloadsPath = FileManager.default.urls(for: .downloadsDirectory, in: .userDomainMask)[0]
+        let recordingsDir = downloadsPath.appendingPathComponent("AudioRecordings", isDirectory: true)
+        try? FileManager.default.createDirectory(at: recordingsDir, withIntermediateDirectories: true)
+        targetURL = recordingsDir.appendingPathComponent(actualFileName)
+    }
+
+    try FileManager.default.createDirectory(
+        at: targetURL.deletingLastPathComponent(),
+        withIntermediateDirectories: true
+    )
+
+    if FileManager.default.fileExists(atPath: targetURL.path) {
+        try FileManager.default.removeItem(at: targetURL)
+    }
+
+    let audioFile = try AVAudioFile(forWriting: targetURL, settings: format.settings)
+    try audioFile.write(from: audioBuffer)
+    return targetURL
 }

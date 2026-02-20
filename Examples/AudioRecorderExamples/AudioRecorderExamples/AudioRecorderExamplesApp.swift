@@ -9,14 +9,7 @@ import SwiftUI
 struct AudioRecorderExamplesApp: App {
     var body: some Scene {
         WindowGroup {
-            // ContentView()
-//            StreamVADView()
-//            StreamToSFSpeech()
-//            IsMutedView()
-//            SpecificMicrophoneEngineRecorderView()
-//            SpecificMicrophoneRecorderWrapperView()
-//            OpenAIRealTimeTranscription()
-            AnotherRealTimeTranscription()
+            AudioEndpointHarnessView()
         }
     }
 }

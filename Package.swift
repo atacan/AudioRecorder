@@ -10,31 +10,21 @@ let package = Package(
         .iOS(.v16),
     ],
     products: [
-        // Products define the executables and libraries a package produces, making them visible to other packages.
         .library(name: "AudioRecorderClient", targets: ["AudioRecorderClient"]),
-        .library(name: "AudioDataStreamClient", targets: ["AudioDataStreamClient"]),
     ],
     dependencies: [
         .package(url: "https://github.com/pointfreeco/swift-dependencies", from: "1.6.2"),
-        .package(url: "https://github.com/pointfreeco/swift-case-paths", from: "1.5.6"),
-        .package(url: "https://github.com/argmaxinc/WhisperKit.git", from: "0.10.2"),
     ],
     targets: [
         .target(
             name: "AudioRecorderClient",
             dependencies: [
                 .product(name: "Dependencies", package: "swift-dependencies"),
+            ],
+            exclude: [
+                "THIRD_PARTY_NOTICES.md",
             ]
         ),
-        .target(
-            name: "AudioDataStreamClient",
-            dependencies: [
-                .product(name: "Dependencies", package: "swift-dependencies"),
-                .product(name: "DependenciesMacros", package: "swift-dependencies"),
-                .product(name: "CasePaths", package: "swift-case-paths"),
-                .product(name: "WhisperKit", package: "WhisperKit"),
-            ]
-        ),
-        .testTarget(name: "AudioRecorderClientTests", dependencies: ["AudioRecorderClient"])
+        .testTarget(name: "AudioRecorderClientTests", dependencies: ["AudioRecorderClient"]),
     ]
 )
