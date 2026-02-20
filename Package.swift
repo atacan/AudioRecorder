@@ -20,9 +20,6 @@ let package = Package(
             name: "AudioRecorderClient",
             dependencies: [
                 .product(name: "Dependencies", package: "swift-dependencies"),
-            ],
-            exclude: [
-                "THIRD_PARTY_NOTICES.md",
             ]
         ),
         .testTarget(name: "AudioRecorderClientTests", dependencies: ["AudioRecorderClient"]),
