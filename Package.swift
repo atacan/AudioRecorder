@@ -28,3 +28,13 @@ let package = Package(
         .testTarget(name: "AudioRecorderClientTests", dependencies: ["AudioRecorderClient"]),
     ]
 )
+
+/*
+AudioRecorderClient target includes small, adapted portions of audio capture and conversion logic inspired by WhisperKit:
+
+- Project: WhisperKit
+- Repository: https://github.com/argmaxinc/WhisperKit
+- License: MIT
+- Source reference used during adaptation:
+  - `Sources/WhisperKit/Core/Audio/AudioProcessor.swift`
+*/

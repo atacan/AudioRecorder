@@ -1,3 +1,4 @@
+import AVFoundation
 import AudioRecorderClient
 import Dependencies
 import SwiftUI
@@ -20,6 +21,9 @@ final class AudioEndpointHarnessModel: ObservableObject {
     @Published var livePayloadCount = 0
     @Published var liveByteCount = 0
     @Published var liveLastSampleCount = 0
+    @Published var liveBufferedSampleCount = 0
+    @Published var liveExportSummary = "No live export yet"
+    @Published var liveExportPath = ""
 
     @Published var isFileRecording = false
     @Published var isFilePaused = false
@@ -32,6 +36,8 @@ final class AudioEndpointHarnessModel: ObservableObject {
 
     private var liveTask: Task<Void, Never>?
     private var fileTimeTask: Task<Void, Never>?
+    private var liveBufferedSamples: [Float] = []
+    private var livePlayer: AVAudioPlayer?
 
     init() {
         let fileName = "audio-recorder-endpoint-harness-\(Int(Date().timeIntervalSince1970)).wav"
@@ -76,6 +82,10 @@ final class AudioEndpointHarnessModel: ObservableObject {
             livePayloadCount = 0
             liveByteCount = 0
             liveLastSampleCount = 0
+            liveBufferedSampleCount = 0
+            liveBufferedSamples.removeAll(keepingCapacity: true)
+            liveExportSummary = "No live export yet"
+            liveExportPath = ""
             appendLog("live.start mode=\(selectedLiveMode.rawValue)")
 
             liveTask?.cancel()
@@ -129,6 +139,53 @@ final class AudioEndpointHarnessModel: ObservableObject {
             appendLog("live.stop failed: \(error)")
         }
         markLiveStopped()
+    }
+
+    func exportLiveBufferTapped() {
+        guard !liveBufferedSamples.isEmpty else {
+            appendLog("live export skipped: no buffered samples")
+            liveExportSummary = "No buffered live samples to export."
+            return
+        }
+
+        let fileName = "live-stream-capture-\(Int(Date().timeIntervalSince1970)).wav"
+        let baseDirectory = URL(fileURLWithPath: (filePath as NSString).deletingLastPathComponent, isDirectory: true)
+        let targetURL = baseDirectory.appendingPathComponent(fileName)
+
+        do {
+            try FileManager.default.createDirectory(at: baseDirectory, withIntermediateDirectories: true)
+            _ = try saveFloatArrayToWavFile(samples: liveBufferedSamples, sampleRate: 16_000, fileURL: targetURL)
+            liveExportPath = targetURL.path
+            liveExportSummary = "Exported \(liveBufferedSamples.count) samples to \(targetURL.lastPathComponent)"
+            appendLog("live export wrote \(liveBufferedSamples.count) samples to \(targetURL.path)")
+        } catch {
+            liveExportSummary = "Export failed: \(error)"
+            appendLog("live export failed: \(error)")
+        }
+    }
+
+    func playLiveExportTapped() {
+        guard !liveExportPath.isEmpty else {
+            appendLog("live playback skipped: no exported file")
+            return
+        }
+
+        do {
+            let url = URL(fileURLWithPath: liveExportPath)
+            livePlayer = try AVAudioPlayer(contentsOf: url)
+            livePlayer?.prepareToPlay()
+            livePlayer?.play()
+            appendLog("live export playback started: \(url.lastPathComponent)")
+        } catch {
+            appendLog("live export playback failed: \(error)")
+        }
+    }
+
+    func clearLiveBufferTapped() {
+        liveBufferedSamples.removeAll(keepingCapacity: true)
+        liveBufferedSampleCount = 0
+        liveExportSummary = "Live buffer cleared."
+        appendLog("live buffer cleared")
     }
 
     func startFileTapped() async {
@@ -256,17 +313,25 @@ final class AudioEndpointHarnessModel: ObservableObject {
 
     private func consumeLivePayload(_ payload: AudioPayload) {
         livePayloadCount += 1
+        let samples: [Float]
+
         switch payload {
         case let .pcm16(data):
             liveByteCount += data.count
             liveLastSampleCount = data.count / MemoryLayout<Int16>.size
-        case let .float32(samples):
-            liveByteCount += samples.count * MemoryLayout<Float>.size
-            liveLastSampleCount = samples.count
-        case let .vadChunk(samples):
-            liveByteCount += samples.count * MemoryLayout<Float>.size
-            liveLastSampleCount = samples.count
+            samples = Self.convertPCM16ToFloatSamples(data)
+        case let .float32(floatSamples):
+            liveByteCount += floatSamples.count * MemoryLayout<Float>.size
+            liveLastSampleCount = floatSamples.count
+            samples = floatSamples
+        case let .vadChunk(vadSamples):
+            liveByteCount += vadSamples.count * MemoryLayout<Float>.size
+            liveLastSampleCount = vadSamples.count
+            samples = vadSamples
         }
+
+        liveBufferedSamples.append(contentsOf: samples)
+        liveBufferedSampleCount = liveBufferedSamples.count
     }
 
     private func markLiveStopped() {
@@ -286,6 +351,27 @@ final class AudioEndpointHarnessModel: ObservableObject {
         if logs.count > 200 {
             logs.removeLast(logs.count - 200)
         }
+    }
+
+    private static func convertPCM16ToFloatSamples(_ data: Data) -> [Float] {
+        guard data.count >= MemoryLayout<Int16>.size else {
+            return []
+        }
+
+        let sampleCount = data.count / MemoryLayout<Int16>.size
+        var samples: [Float] = []
+        samples.reserveCapacity(sampleCount)
+
+        data.withUnsafeBytes { rawBuffer in
+            for index in 0..<sampleCount {
+                let offset = index * MemoryLayout<Int16>.size
+                let value = rawBuffer.load(fromByteOffset: offset, as: Int16.self)
+                let littleEndian = Int16(littleEndian: value)
+                samples.append(Float(littleEndian) / Float(Int16.max))
+            }
+        }
+
+        return samples
     }
 }
 
@@ -343,6 +429,28 @@ struct AudioEndpointHarnessView: View {
                         Text("Running: \(model.isLiveRunning ? "Yes" : "No"), Paused: \(model.isLivePaused ? "Yes" : "No")")
                             .font(.callout)
                         Text("Payloads: \(model.livePayloadCount), Last samples: \(model.liveLastSampleCount), Approx bytes: \(model.liveByteCount)")
+                            .font(.callout)
+                        Text("Buffered live samples: \(model.liveBufferedSampleCount)")
+                            .font(.callout)
+
+                        HStack(spacing: 10) {
+                            Button("Export Buffered Live Audio") {
+                                model.exportLiveBufferTapped()
+                            }
+                            .disabled(model.liveBufferedSampleCount == 0)
+
+                            Button("Play Exported Live Audio") {
+                                model.playLiveExportTapped()
+                            }
+                            .disabled(model.liveExportPath.isEmpty)
+
+                            Button("Clear Live Buffer") {
+                                model.clearLiveBufferTapped()
+                            }
+                            .disabled(model.liveBufferedSampleCount == 0)
+                        }
+
+                        Text(model.liveExportSummary)
                             .font(.callout)
                     }
                 }
@@ -439,4 +547,41 @@ struct AudioEndpointHarnessView: View {
 
 #Preview {
     AudioEndpointHarnessView()
+}
+
+private func saveFloatArrayToWavFile(
+    samples: [Float],
+    sampleRate: Double = 16_000,
+    fileName: String? = nil,
+    fileURL: URL? = nil
+) throws -> URL {
+    let format = AVAudioFormat(standardFormatWithSampleRate: sampleRate, channels: 1)!
+    let audioBuffer = AVAudioPCMBuffer(pcmFormat: format, frameCapacity: AVAudioFrameCount(samples.count))!
+
+    for (index, sample) in samples.enumerated() {
+        audioBuffer.floatChannelData?[0][index] = sample
+    }
+    audioBuffer.frameLength = AVAudioFrameCount(samples.count)
+
+    let targetURL: URL
+    if let fileURL {
+        targetURL = fileURL
+    } else {
+        let actualFileName = fileName ?? "live-buffer-\(Date().timeIntervalSince1970).wav"
+        let downloads = FileManager.default.urls(for: .downloadsDirectory, in: .userDomainMask).first
+            ?? URL(fileURLWithPath: NSTemporaryDirectory(), isDirectory: true)
+        targetURL = downloads.appendingPathComponent(actualFileName)
+    }
+
+    try FileManager.default.createDirectory(
+        at: targetURL.deletingLastPathComponent(),
+        withIntermediateDirectories: true
+    )
+    if FileManager.default.fileExists(atPath: targetURL.path) {
+        try FileManager.default.removeItem(at: targetURL)
+    }
+
+    let audioFile = try AVAudioFile(forWriting: targetURL, settings: format.settings)
+    try audioFile.write(from: audioBuffer)
+    return targetURL
 }
