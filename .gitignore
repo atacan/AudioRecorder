@@ -7,4 +7,6 @@ DerivedData/
 .netrc
 Examples/AudioRecorderExamples/AudioRecorderExamples.xcodeproj/xcshareddata/*
 Examples/.build/
-**.wav
+**.wav# Secret scanning reports
+gitleaks-report.json
+trufflehog-report.json
