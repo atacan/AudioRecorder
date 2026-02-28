@@ -1,4 +1,6 @@
 # AudioRecorderClient
+[![](https://img.shields.io/endpoint?url=https%3A%2F%2Fswiftpackageindex.com%2Fapi%2Fpackages%2Fatacan%2FAudioRecorder%2Fbadge%3Ftype%3Dswift-versions)](https://swiftpackageindex.com/atacan/AudioRecorder)
+[![](https://img.shields.io/endpoint?url=https%3A%2F%2Fswiftpackageindex.com%2Fapi%2Fpackages%2Fatacan%2FAudioRecorder%2Fbadge%3Ftype%3Dplatforms)](https://swiftpackageindex.com/atacan/AudioRecorder)
 
 A Swift package that provides a unified, dependency-injected audio recording client for macOS and iOS. Supports real-time audio streaming, Voice Activity Detection (VAD), and file recording — all through a single testable interface built on [swift-dependencies](https://github.com/pointfreeco/swift-dependencies).
 
