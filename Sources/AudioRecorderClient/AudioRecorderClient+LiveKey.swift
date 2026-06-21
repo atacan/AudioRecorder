@@ -320,13 +320,14 @@ private actor AudioRuntimeActor {
     }
 
     func startFile(config: FileRecordingConfiguration) throws {
-        try startFile(config: config, streamContinuation: nil)
+        try startFile(config: config, streamContinuation: nil, token: UUID())
     }
 
     func startStreamingFile(config: FileRecordingConfiguration) throws -> AsyncThrowingStream<Data, Error> {
-        let (stream, continuation) = AsyncThrowingStream<Data, Error>.makeStream()
+        let token = UUID()
+        let (stream, continuation) = makeFileStream(token: token)
         do {
-            try startFile(config: config, streamContinuation: continuation)
+            try startFile(config: config, streamContinuation: continuation, token: token)
         } catch {
             continuation.finish(throwing: error)
             throw error
@@ -336,7 +337,8 @@ private actor AudioRuntimeActor {
 
     private func startFile(
         config: FileRecordingConfiguration,
-        streamContinuation: AsyncThrowingStream<Data, Error>.Continuation?
+        streamContinuation: AsyncThrowingStream<Data, Error>.Continuation?,
+        token: UUID
     ) throws {
         guard config.channelCount > 0 else {
             throw AudioRecorderClientError.converterFailed
@@ -368,7 +370,6 @@ private actor AudioRuntimeActor {
             throw AudioRecorderClientError.fileWriteFailed
         }
 
-        let token = UUID()
         state = .file(.init(config: config, file: audioFile, streamContinuation: streamContinuation))
         activeToken = token
 
@@ -481,11 +482,44 @@ private actor AudioRuntimeActor {
         return (stream, continuation)
     }
 
+    private func makeFileStream(
+        token: UUID
+    ) -> (
+        AsyncThrowingStream<Data, Error>,
+        AsyncThrowingStream<Data, Error>.Continuation
+    ) {
+        var continuation: AsyncThrowingStream<Data, Error>.Continuation!
+        let stream = AsyncThrowingStream<Data, Error> { createdContinuation in
+            continuation = createdContinuation
+        }
+
+        continuation.onTermination = { [token] _ in
+            Task {
+                await self.handleFileStreamTermination(token: token)
+            }
+        }
+
+        return (stream, continuation)
+    }
+
     private func handleLiveStreamTermination(token: UUID) {
         guard activeToken == token else {
             return
         }
         guard case .live = state else {
+            return
+        }
+
+        stopCapture()
+        state = .idle
+        activeToken = nil
+    }
+
+    private func handleFileStreamTermination(token: UUID) {
+        guard activeToken == token else {
+            return
+        }
+        guard case .file = state else {
             return
         }
 
