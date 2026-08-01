@@ -34,6 +34,14 @@ extension AudioRecorderClient: TestDependencyKey {
                     isFileRecording.setValue(true)
                     fileCurrentSeconds.setValue(0)
                 },
+                startStreaming: { _ in
+                    isFileRecording.setValue(true)
+                    fileCurrentSeconds.setValue(0)
+                    return AsyncThrowingStream { continuation in
+                        continuation.yield(Data([0x00, 0x00, 0x01, 0x00]))
+                        continuation.finish()
+                    }
+                },
                 currentTime: {
                     fileCurrentSeconds.value
                 },
@@ -79,6 +87,12 @@ extension AudioRecorderClient: TestDependencyKey {
         ),
         file: .init(
             start: unimplemented("\(Self.self).file.start"),
+            startStreaming: unimplemented(
+                "\(Self.self).file.startStreaming",
+                placeholder: AsyncThrowingStream { continuation in
+                    continuation.finish()
+                }
+            ),
             currentTime: unimplemented("\(Self.self).file.currentTime", placeholder: nil),
             pause: unimplemented("\(Self.self).file.pause"),
             resume: unimplemented("\(Self.self).file.resume"),

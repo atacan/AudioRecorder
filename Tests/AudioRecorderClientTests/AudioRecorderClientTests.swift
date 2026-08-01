@@ -34,6 +34,11 @@ final class AudioRecorderClientTests: XCTestCase {
                 ),
                 file: .init(
                     start: { _ in },
+                    startStreaming: { _ in
+                        AsyncThrowingStream { continuation in
+                            continuation.finish()
+                        }
+                    },
                     currentTime: { nil },
                     pause: {},
                     resume: {},
@@ -77,6 +82,13 @@ final class AudioRecorderClientTests: XCTestCase {
                 file: .init(
                     start: { _ in
                         currentTime.setValue(1.25)
+                    },
+                    startStreaming: { _ in
+                        currentTime.setValue(1.25)
+                        return AsyncThrowingStream { continuation in
+                            continuation.yield(Data([0x00, 0x00]))
+                            continuation.finish()
+                        }
                     },
                     currentTime: {
                         currentTime.value

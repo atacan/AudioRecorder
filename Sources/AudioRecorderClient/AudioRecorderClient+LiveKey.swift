@@ -46,6 +46,7 @@ public struct AudioRecorderClient: Sendable {
 
     public struct File: Sendable {
         public var start: @Sendable (_ config: FileRecordingConfiguration) async throws -> Void
+        public var startStreaming: @Sendable (_ config: FileRecordingConfiguration) async throws -> AsyncThrowingStream<Data, Error>
         public var currentTime: @Sendable () async -> TimeInterval?
         public var pause: @Sendable () async throws -> Void
         public var resume: @Sendable () async throws -> Void
@@ -53,12 +54,14 @@ public struct AudioRecorderClient: Sendable {
 
         public init(
             start: @escaping @Sendable (_ config: FileRecordingConfiguration) async throws -> Void,
+            startStreaming: @escaping @Sendable (_ config: FileRecordingConfiguration) async throws -> AsyncThrowingStream<Data, Error>,
             currentTime: @escaping @Sendable () async -> TimeInterval?,
             pause: @escaping @Sendable () async throws -> Void,
             resume: @escaping @Sendable () async throws -> Void,
             stop: @escaping @Sendable () async throws -> FileRecordingResult
         ) {
             self.start = start
+            self.startStreaming = startStreaming
             self.currentTime = currentTime
             self.pause = pause
             self.resume = resume
@@ -194,6 +197,9 @@ extension AudioRecorderClient: DependencyKey {
                 start: { config in
                     try await runtime.startFile(config: config)
                 },
+                startStreaming: { config in
+                    try await runtime.startStreamingFile(config: config)
+                },
                 currentTime: {
                     await runtime.fileCurrentTime()
                 },
@@ -232,6 +238,7 @@ private actor AudioRuntimeActor {
     private struct FileSession {
         var config: FileRecordingConfiguration
         var file: AVAudioFile
+        var streamContinuation: AsyncThrowingStream<Data, Error>.Continuation?
         var sampleCount: Int64 = 0
         var terminalError: AudioRecorderClientError?
     }
@@ -313,6 +320,26 @@ private actor AudioRuntimeActor {
     }
 
     func startFile(config: FileRecordingConfiguration) throws {
+        try startFile(config: config, streamContinuation: nil, token: UUID())
+    }
+
+    func startStreamingFile(config: FileRecordingConfiguration) throws -> AsyncThrowingStream<Data, Error> {
+        let token = UUID()
+        let (stream, continuation) = makeFileStream(token: token)
+        do {
+            try startFile(config: config, streamContinuation: continuation, token: token)
+        } catch {
+            continuation.finish(throwing: error)
+            throw error
+        }
+        return stream
+    }
+
+    private func startFile(
+        config: FileRecordingConfiguration,
+        streamContinuation: AsyncThrowingStream<Data, Error>.Continuation?,
+        token: UUID
+    ) throws {
         guard config.channelCount > 0 else {
             throw AudioRecorderClientError.converterFailed
         }
@@ -343,8 +370,7 @@ private actor AudioRuntimeActor {
             throw AudioRecorderClientError.fileWriteFailed
         }
 
-        let token = UUID()
-        state = .file(.init(config: config, file: audioFile))
+        state = .file(.init(config: config, file: audioFile, streamContinuation: streamContinuation))
         activeToken = token
 
         do {
@@ -357,6 +383,7 @@ private actor AudioRuntimeActor {
         } catch {
             state = .idle
             activeToken = nil
+            streamContinuation?.finish(throwing: error)
             throw error
         }
     }
@@ -380,6 +407,7 @@ private actor AudioRuntimeActor {
         stopCapture()
         state = .idle
         activeToken = nil
+        session.streamContinuation?.finish()
 
         if let terminalError = session.terminalError {
             throw terminalError
@@ -454,11 +482,44 @@ private actor AudioRuntimeActor {
         return (stream, continuation)
     }
 
+    private func makeFileStream(
+        token: UUID
+    ) -> (
+        AsyncThrowingStream<Data, Error>,
+        AsyncThrowingStream<Data, Error>.Continuation
+    ) {
+        var continuation: AsyncThrowingStream<Data, Error>.Continuation!
+        let stream = AsyncThrowingStream<Data, Error> { createdContinuation in
+            continuation = createdContinuation
+        }
+
+        continuation.onTermination = { [token] _ in
+            Task {
+                await self.handleFileStreamTermination(token: token)
+            }
+        }
+
+        return (stream, continuation)
+    }
+
     private func handleLiveStreamTermination(token: UUID) {
         guard activeToken == token else {
             return
         }
         guard case .live = state else {
+            return
+        }
+
+        stopCapture()
+        state = .idle
+        activeToken = nil
+    }
+
+    private func handleFileStreamTermination(token: UUID) {
+        guard activeToken == token else {
+            return
+        }
+        guard case .file = state else {
             return
         }
 
@@ -585,8 +646,10 @@ private actor AudioRuntimeActor {
                     channelCount: session.config.channelCount
                 )
                 session.sampleCount += Int64(buffer.count / max(1, session.config.channelCount))
+                session.streamContinuation?.yield(Self.convertFloatToPCM16Data(buffer))
             } catch {
                 session.terminalError = .fileWriteFailed
+                session.streamContinuation?.finish(throwing: AudioRecorderClientError.fileWriteFailed)
                 stopCapture()
             }
             state = .file(session)
