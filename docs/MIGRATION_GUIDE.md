@@ -164,6 +164,35 @@ print("Saved:", result.url.path, "duration:", result.duration, "samples:", resul
 - `pause`/`resume`/`stop` are mode-specific (`live` vs `file`) and throw on invalid usage.
 - `SystemAudio` utility remains separate and unchanged.
 
+## Exclusive recorder ownership
+
+For callers that need proof a prior recorder has released the microphone or output
+file, migrate new recording flows to `audioRecorder.lifecycle`. It is additive, so
+existing grouped endpoints continue to compile.
+
+```swift
+let recording = try await audioRecorder.lifecycle.startFile(.init(url: url))
+
+switch try await audioRecorder.lifecycle.stop(recording) {
+case .released(.file(let result)):
+  // A new start is safe here.
+  print(result.url)
+case .releasedWithError(let error):
+  // Finalization failed, but release is confirmed.
+  print(error)
+case .releaseUnknown:
+  // Keep starts blocked until teardown confirms release.
+  _ = try await audioRecorder.lifecycle.teardown(recording)
+case .released(.live):
+  assertionFailure("A file session cannot produce a live result")
+}
+```
+
+`startLive` and `startStreamingFile` return wrappers containing both `session` and
+their `AsyncThrowingStream`. `lifecycle.status()` reports `.idle`, `.recording`,
+`.stopping`, or `.releaseUnknown`; only `.idle` permits a new session. Teardown keeps
+partially written files for the caller to inspect or remove.
+
 ## Testing migration
 
 `audioRecorder` overrides in tests now use grouped fields:

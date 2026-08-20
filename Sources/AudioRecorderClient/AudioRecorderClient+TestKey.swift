@@ -104,6 +104,38 @@ extension AudioRecorderClient: TestDependencyKey {
                     sampleCount: 0
                 )
             )
+        ),
+        lifecycle: .init(
+            startLive: unimplemented(
+                "\(Self.self).lifecycle.startLive",
+                placeholder: LiveRecording(
+                    session: RecordingSession(kind: .live),
+                    stream: AsyncThrowingStream { $0.finish() }
+                )
+            ),
+            startFile: unimplemented(
+                "\(Self.self).lifecycle.startFile",
+                placeholder: RecordingSession(kind: .file)
+            ),
+            startStreamingFile: unimplemented(
+                "\(Self.self).lifecycle.startStreamingFile",
+                placeholder: StreamingFileRecording(
+                    session: RecordingSession(kind: .streamingFile),
+                    stream: AsyncThrowingStream { $0.finish() }
+                )
+            ),
+            currentTime: unimplemented("\(Self.self).lifecycle.currentTime", placeholder: nil),
+            pause: unimplemented("\(Self.self).lifecycle.pause"),
+            resume: unimplemented("\(Self.self).lifecycle.resume"),
+            stop: unimplemented(
+                "\(Self.self).lifecycle.stop",
+                placeholder: RecordingStopOutcome.released(.live)
+            ),
+            teardown: unimplemented(
+                "\(Self.self).lifecycle.teardown",
+                placeholder: RecordingTeardownOutcome.released
+            ),
+            status: unimplemented("\(Self.self).lifecycle.status", placeholder: .idle)
         )
     )
 }
