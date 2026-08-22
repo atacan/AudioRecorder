@@ -6,6 +6,8 @@ public struct AudioRecorderClient: Sendable {
     public var permissions: Permissions
     public var live: Live
     public var file: File
+    /// The handle-based API for callers that must know when recorder resources are released.
+    public var lifecycle: Lifecycle
 
     public init(
         permissions: Permissions,
@@ -15,6 +17,19 @@ public struct AudioRecorderClient: Sendable {
         self.permissions = permissions
         self.live = live
         self.file = file
+        self.lifecycle = .unavailable
+    }
+
+    public init(
+        permissions: Permissions,
+        live: Live,
+        file: File,
+        lifecycle: Lifecycle
+    ) {
+        self.permissions = permissions
+        self.live = live
+        self.file = file
+        self.lifecycle = lifecycle
     }
 
     public struct Permissions: Sendable {
@@ -68,6 +83,127 @@ public struct AudioRecorderClient: Sendable {
             self.stop = stop
         }
     }
+
+    /// Lifecycle operations scoped to an individual recording session.
+    ///
+    /// A new recording may only be started after the previous session reports
+    /// `.released` from `stop` or `teardown`.
+    ///
+    /// A reported release covers resources owned by this client: its audio engine,
+    /// input tap, file/stream handles, and (on iOS-family platforms) the audio
+    /// session it activated. `AVAudioSession` is process-wide, so this client cannot
+    /// prove that another component in the host app is not retaining that session.
+    public struct Lifecycle: Sendable {
+        public var startLive: @Sendable (_ config: LiveStreamConfiguration) async throws -> LiveRecording
+        public var startFile: @Sendable (_ config: FileRecordingConfiguration) async throws -> RecordingSession
+        public var startStreamingFile: @Sendable (_ config: FileRecordingConfiguration) async throws -> StreamingFileRecording
+        public var currentTime: @Sendable (_ session: RecordingSession) async throws -> TimeInterval?
+        public var pause: @Sendable (_ session: RecordingSession) async throws -> Void
+        public var resume: @Sendable (_ session: RecordingSession) async throws -> Void
+        public var stop: @Sendable (_ session: RecordingSession) async throws -> RecordingStopOutcome
+        public var teardown: @Sendable (_ session: RecordingSession) async throws -> RecordingTeardownOutcome
+        public var status: @Sendable () async -> RecorderLifecycleStatus
+
+        public init(
+            startLive: @escaping @Sendable (_ config: LiveStreamConfiguration) async throws -> LiveRecording,
+            startFile: @escaping @Sendable (_ config: FileRecordingConfiguration) async throws -> RecordingSession,
+            startStreamingFile: @escaping @Sendable (_ config: FileRecordingConfiguration) async throws -> StreamingFileRecording,
+            currentTime: @escaping @Sendable (_ session: RecordingSession) async throws -> TimeInterval?,
+            pause: @escaping @Sendable (_ session: RecordingSession) async throws -> Void,
+            resume: @escaping @Sendable (_ session: RecordingSession) async throws -> Void,
+            stop: @escaping @Sendable (_ session: RecordingSession) async throws -> RecordingStopOutcome,
+            teardown: @escaping @Sendable (_ session: RecordingSession) async throws -> RecordingTeardownOutcome,
+            status: @escaping @Sendable () async -> RecorderLifecycleStatus
+        ) {
+            self.startLive = startLive
+            self.startFile = startFile
+            self.startStreamingFile = startStreamingFile
+            self.currentTime = currentTime
+            self.pause = pause
+            self.resume = resume
+            self.stop = stop
+            self.teardown = teardown
+            self.status = status
+        }
+
+        static let unavailable = Self(
+            startLive: { _ in throw AudioRecorderClientError.lifecycleUnavailable },
+            startFile: { _ in throw AudioRecorderClientError.lifecycleUnavailable },
+            startStreamingFile: { _ in throw AudioRecorderClientError.lifecycleUnavailable },
+            currentTime: { _ in throw AudioRecorderClientError.lifecycleUnavailable },
+            pause: { _ in throw AudioRecorderClientError.lifecycleUnavailable },
+            resume: { _ in throw AudioRecorderClientError.lifecycleUnavailable },
+            stop: { _ in throw AudioRecorderClientError.lifecycleUnavailable },
+            teardown: { _ in throw AudioRecorderClientError.lifecycleUnavailable },
+            status: { .idle }
+        )
+    }
+}
+
+public enum RecordingSessionKind: Sendable, Hashable {
+    case live
+    case file
+    case streamingFile
+}
+
+/// A capability for exactly one recorder session. The runtime validates its ID on every operation.
+public struct RecordingSession: Sendable, Hashable {
+    public let id: UUID
+    public let kind: RecordingSessionKind
+
+    public init(id: UUID = UUID(), kind: RecordingSessionKind) {
+        self.id = id
+        self.kind = kind
+    }
+}
+
+public struct LiveRecording: Sendable {
+    public let session: RecordingSession
+    public let stream: AsyncThrowingStream<AudioPayload, Error>
+
+    public init(session: RecordingSession, stream: AsyncThrowingStream<AudioPayload, Error>) {
+        self.session = session
+        self.stream = stream
+    }
+}
+
+public struct StreamingFileRecording: Sendable {
+    public let session: RecordingSession
+    public let stream: AsyncThrowingStream<Data, Error>
+
+    public init(session: RecordingSession, stream: AsyncThrowingStream<Data, Error>) {
+        self.session = session
+        self.stream = stream
+    }
+}
+
+public enum RecorderLifecycleStatus: Sendable, Hashable {
+    case idle
+    case recording(RecordingSession)
+    case stopping(RecordingSession)
+    case releaseUnknown(RecordingSession)
+}
+
+public enum RecordingStopValue: Sendable {
+    case live
+    case file(FileRecordingResult)
+}
+
+/// The result of a requested graceful stop. It always states whether release is known.
+///
+/// Do not start another recording after `.releaseUnknown`; call `teardown` for the
+/// same session and wait for `.released` first.
+public enum RecordingStopOutcome: Sendable {
+    case released(RecordingStopValue)
+    case releasedWithError(AudioRecorderClientError)
+    case releaseUnknown(AudioRecorderClientError)
+}
+
+/// The result of forced resource cleanup after an uncertain or cancelled stop.
+/// Teardown preserves a partial file; deleting it remains the caller's responsibility.
+public enum RecordingTeardownOutcome: Sendable, Equatable {
+    case released
+    case releaseUnknown(AudioRecorderClientError)
 }
 
 public struct LiveStreamConfiguration: Sendable {
@@ -160,13 +296,15 @@ public struct FileRecordingResult: Sendable {
     }
 }
 
-public enum AudioRecorderClientError: Error, Sendable {
+public enum AudioRecorderClientError: Error, Sendable, Equatable {
     case sessionAlreadyActive
     case noActiveSession
     case invalidOperationForActiveMode
     case engineStartFailed
     case converterFailed
     case fileWriteFailed
+    case lifecycleUnavailable
+    case invalidSession
 }
 
 extension AudioRecorderClient: DependencyKey {
@@ -212,6 +350,17 @@ extension AudioRecorderClient: DependencyKey {
                 stop: {
                     try await runtime.stopFile()
                 }
+            ),
+            lifecycle: .init(
+                startLive: { config in try await runtime.startManagedLive(config: config) },
+                startFile: { config in try await runtime.startManagedFile(config: config) },
+                startStreamingFile: { config in try await runtime.startManagedStreamingFile(config: config) },
+                currentTime: { session in try await runtime.currentTime(for: session) },
+                pause: { session in try await runtime.pause(session: session) },
+                resume: { session in try await runtime.resume(session: session) },
+                stop: { session in try await runtime.stop(session: session) },
+                teardown: { session in try await runtime.teardown(session: session) },
+                status: { await runtime.lifecycleStatus() }
             )
         )
     }
@@ -252,8 +401,16 @@ private actor AudioRuntimeActor {
     private var state: SessionState = .idle
     private var audioEngine: AVAudioEngine?
     private var activeToken: UUID?
+    private var activeSession: RecordingSession?
+    private var stoppingSession: RecordingSession?
+    private var releaseUnknownSession: RecordingSession?
+    private var lastStop: (session: RecordingSession, outcome: RecordingStopOutcome)?
 
     func startLive(config: LiveStreamConfiguration) throws -> AsyncThrowingStream<AudioPayload, Error> {
+        try startManagedLive(config: config).stream
+    }
+
+    func startManagedLive(config: LiveStreamConfiguration) throws -> LiveRecording {
         guard config.channelCount > 0 else {
             throw AudioRecorderClientError.converterFailed
         }
@@ -262,6 +419,7 @@ private actor AudioRuntimeActor {
         }
 
         let token = UUID()
+        let recordingSession = RecordingSession(id: token, kind: .live)
         let (stream, continuation) = makeLiveStream(token: token)
         var session = LiveSession(mode: config.mode, continuation: continuation, vadState: nil)
 
@@ -271,6 +429,8 @@ private actor AudioRuntimeActor {
 
         state = .live(session)
         activeToken = token
+        activeSession = recordingSession
+        lastStop = nil
 
         do {
             try startCapture(
@@ -282,11 +442,12 @@ private actor AudioRuntimeActor {
         } catch {
             state = .idle
             activeToken = nil
+            activeSession = nil
             continuation.finish(throwing: error)
             throw error
         }
 
-        return stream
+        return LiveRecording(session: recordingSession, stream: stream)
     }
 
     func pauseLive() throws {
@@ -298,47 +459,55 @@ private actor AudioRuntimeActor {
     }
 
     func stopLive() throws {
-        guard case .live(let session) = state else {
+        guard case .live = state, let activeSession else {
             if case .idle = state {
                 throw AudioRecorderClientError.noActiveSession
             }
             throw AudioRecorderClientError.invalidOperationForActiveMode
         }
 
-        if case let .vad(config) = session.mode,
-           config.stopBehavior == .flushBufferedSpeech,
-           var vadState = session.vadState,
-           let finalChunk = Self.finalizeVADIfNeeded(state: &vadState, config: config)
-        {
-            session.continuation.yield(.vadChunk(finalChunk))
+        let outcome = try stop(session: activeSession)
+        switch outcome {
+        case .released(.live):
+            return
+        case .releasedWithError(let error), .releaseUnknown(let error):
+            throw error
+        case .released(.file):
+            throw AudioRecorderClientError.invalidOperationForActiveMode
         }
-
-        session.continuation.finish()
-        stopCapture()
-        state = .idle
-        activeToken = nil
     }
 
-    func startFile(config: FileRecordingConfiguration) throws {
-        try startFile(config: config, streamContinuation: nil, token: UUID())
+    func startManagedFile(config: FileRecordingConfiguration) throws -> RecordingSession {
+        let session = RecordingSession(kind: .file)
+        try startFile(config: config, streamContinuation: nil, token: session.id, recordingSession: session)
+        return session
     }
 
-    func startStreamingFile(config: FileRecordingConfiguration) throws -> AsyncThrowingStream<Data, Error> {
-        let token = UUID()
-        let (stream, continuation) = makeFileStream(token: token)
+    func startManagedStreamingFile(config: FileRecordingConfiguration) throws -> StreamingFileRecording {
+        let session = RecordingSession(kind: .streamingFile)
+        let (stream, continuation) = makeFileStream(token: session.id)
         do {
-            try startFile(config: config, streamContinuation: continuation, token: token)
+            try startFile(config: config, streamContinuation: continuation, token: session.id, recordingSession: session)
         } catch {
             continuation.finish(throwing: error)
             throw error
         }
-        return stream
+        return StreamingFileRecording(session: session, stream: stream)
+    }
+
+    func startFile(config: FileRecordingConfiguration) throws {
+        _ = try startManagedFile(config: config)
+    }
+
+    func startStreamingFile(config: FileRecordingConfiguration) throws -> AsyncThrowingStream<Data, Error> {
+        try startManagedStreamingFile(config: config).stream
     }
 
     private func startFile(
         config: FileRecordingConfiguration,
         streamContinuation: AsyncThrowingStream<Data, Error>.Continuation?,
-        token: UUID
+        token: UUID,
+        recordingSession: RecordingSession
     ) throws {
         guard config.channelCount > 0 else {
             throw AudioRecorderClientError.converterFailed
@@ -372,6 +541,8 @@ private actor AudioRuntimeActor {
 
         state = .file(.init(config: config, file: audioFile, streamContinuation: streamContinuation))
         activeToken = token
+        activeSession = recordingSession
+        lastStop = nil
 
         do {
             try startCapture(
@@ -383,6 +554,7 @@ private actor AudioRuntimeActor {
         } catch {
             state = .idle
             activeToken = nil
+            activeSession = nil
             streamContinuation?.finish(throwing: error)
             throw error
         }
@@ -397,28 +569,22 @@ private actor AudioRuntimeActor {
     }
 
     func stopFile() throws -> FileRecordingResult {
-        guard case .file(let session) = state else {
+        guard case .file = state, let activeSession else {
             if case .idle = state {
                 throw AudioRecorderClientError.noActiveSession
             }
             throw AudioRecorderClientError.invalidOperationForActiveMode
         }
 
-        stopCapture()
-        state = .idle
-        activeToken = nil
-        session.streamContinuation?.finish()
-
-        if let terminalError = session.terminalError {
-            throw terminalError
+        let outcome = try stop(session: activeSession)
+        switch outcome {
+        case .released(.file(let result)):
+            return result
+        case .releasedWithError(let error), .releaseUnknown(let error):
+            throw error
+        case .released(.live):
+            throw AudioRecorderClientError.invalidOperationForActiveMode
         }
-
-        let duration = Double(session.sampleCount) / session.config.sampleRate
-        return FileRecordingResult(
-            url: session.config.url,
-            duration: duration,
-            sampleCount: Int(session.sampleCount)
-        )
     }
 
     func fileCurrentTime() -> TimeInterval? {
@@ -429,11 +595,158 @@ private actor AudioRuntimeActor {
         return Double(session.sampleCount) / session.config.sampleRate
     }
 
+    func currentTime(for session: RecordingSession) throws -> TimeInterval? {
+        try validateActive(session, expected: .file)
+        return fileCurrentTime()
+    }
+
+    func pause(session: RecordingSession) throws {
+        switch session.kind {
+        case .live:
+            try validateActive(session, expected: .live)
+        case .file, .streamingFile:
+            try validateActive(session, expected: .file)
+        }
+        audioEngine?.pause()
+    }
+
+    func resume(session: RecordingSession) throws {
+        switch session.kind {
+        case .live:
+            try validateActive(session, expected: .live)
+        case .file, .streamingFile:
+            try validateActive(session, expected: .file)
+        }
+        do {
+            try audioEngine?.start()
+        } catch {
+            throw AudioRecorderClientError.engineStartFailed
+        }
+    }
+
+    func lifecycleStatus() -> RecorderLifecycleStatus {
+        if let releaseUnknownSession {
+            return .releaseUnknown(releaseUnknownSession)
+        }
+        if let stoppingSession {
+            return .stopping(stoppingSession)
+        }
+        if let activeSession {
+            return .recording(activeSession)
+        }
+        return .idle
+    }
+
+    func stop(session requestedSession: RecordingSession) throws -> RecordingStopOutcome {
+        if let lastStop, lastStop.session == requestedSession {
+            return lastStop.outcome
+        }
+        guard activeSession == requestedSession else {
+            throw AudioRecorderClientError.invalidSession
+        }
+
+        stoppingSession = requestedSession
+        defer { stoppingSession = nil }
+
+        let outcome: RecordingStopOutcome
+        do {
+            switch state {
+            case .live(let session):
+                if case let .vad(config) = session.mode,
+                   config.stopBehavior == .flushBufferedSpeech,
+                   var vadState = session.vadState,
+                   let finalChunk = Self.finalizeVADIfNeeded(state: &vadState, config: config)
+                {
+                    session.continuation.yield(.vadChunk(finalChunk))
+                }
+                session.continuation.finish()
+                try stopCapture()
+                clearActiveSession()
+                outcome = .released(.live)
+
+            case .file(let session):
+                try stopCapture()
+                session.streamContinuation?.finish()
+                clearActiveSession()
+
+                if let terminalError = session.terminalError {
+                    outcome = .releasedWithError(terminalError)
+                } else {
+                    let duration = Double(session.sampleCount) / session.config.sampleRate
+                    outcome = .released(.file(.init(
+                        url: session.config.url,
+                        duration: duration,
+                        sampleCount: Int(session.sampleCount)
+                    )))
+                }
+
+            case .idle:
+                throw AudioRecorderClientError.noActiveSession
+            }
+        } catch let error as AudioRecorderClientError {
+            releaseUnknownSession = requestedSession
+            outcome = .releaseUnknown(error)
+        } catch {
+            releaseUnknownSession = requestedSession
+            outcome = .releaseUnknown(.engineStartFailed)
+        }
+
+        lastStop = (requestedSession, outcome)
+        return outcome
+    }
+
+    func teardown(session requestedSession: RecordingSession) throws -> RecordingTeardownOutcome {
+        if activeSession != requestedSession, releaseUnknownSession != requestedSession {
+            throw AudioRecorderClientError.invalidSession
+        }
+
+        do {
+            switch state {
+            case .live(let session):
+                session.continuation.finish()
+            case .file(let session):
+                session.streamContinuation?.finish()
+            case .idle:
+                break
+            }
+            try stopCapture()
+            clearActiveSession()
+            releaseUnknownSession = nil
+            return .released
+        } catch let error as AudioRecorderClientError {
+            releaseUnknownSession = requestedSession
+            return .releaseUnknown(error)
+        } catch {
+            releaseUnknownSession = requestedSession
+            return .releaseUnknown(.engineStartFailed)
+        }
+    }
+
     private var stateIsIdle: Bool {
         if case .idle = state {
-            return true
+            return releaseUnknownSession == nil
         }
         return false
+    }
+
+    private func clearActiveSession() {
+        state = .idle
+        activeToken = nil
+        activeSession = nil
+        stoppingSession = nil
+        releaseUnknownSession = nil
+    }
+
+    private func validateActive(_ session: RecordingSession, expected: SessionKind) throws {
+        guard activeSession == session else {
+            throw AudioRecorderClientError.invalidSession
+        }
+        switch (expected, state) {
+        case (.live, .live), (.file, .file):
+            return
+        default:
+            throw AudioRecorderClientError.invalidOperationForActiveMode
+        }
     }
 
     private func pause(expected: SessionKind) throws {
@@ -510,9 +823,14 @@ private actor AudioRuntimeActor {
             return
         }
 
-        stopCapture()
-        state = .idle
-        activeToken = nil
+        do {
+            try stopCapture()
+            clearActiveSession()
+        } catch {
+            if let activeSession {
+                releaseUnknownSession = activeSession
+            }
+        }
     }
 
     private func handleFileStreamTermination(token: UUID) {
@@ -523,9 +841,14 @@ private actor AudioRuntimeActor {
             return
         }
 
-        stopCapture()
-        state = .idle
-        activeToken = nil
+        do {
+            try stopCapture()
+            clearActiveSession()
+        } catch {
+            if let activeSession {
+                releaseUnknownSession = activeSession
+            }
+        }
     }
 
     private func startCapture(
@@ -607,12 +930,20 @@ private actor AudioRuntimeActor {
         self.audioEngine = audioEngine
     }
 
-    private func stopCapture() {
+    private func stopCapture() throws {
         if let audioEngine {
             audioEngine.inputNode.removeTap(onBus: 0)
             audioEngine.stop()
         }
         audioEngine = nil
+
+        #if !os(macOS)
+        do {
+            try AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)
+        } catch {
+            throw AudioRecorderClientError.engineStartFailed
+        }
+        #endif
     }
 
     private func consumeBuffer(_ buffer: [Float], token: UUID) {
@@ -650,7 +981,7 @@ private actor AudioRuntimeActor {
             } catch {
                 session.terminalError = .fileWriteFailed
                 session.streamContinuation?.finish(throwing: AudioRecorderClientError.fileWriteFailed)
-                stopCapture()
+                try? stopCapture()
             }
             state = .file(session)
 

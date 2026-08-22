@@ -52,6 +52,36 @@ The client is grouped into three namespaces:
 
 Only one session can be active at a time. Starting a second session while one is running throws `.sessionAlreadyActive`.
 
+### Reliable recorder release
+
+Use `lifecycle` when a caller must not start another recording until this package has
+released its microphone, audio-session, and file/stream resources. Lifecycle starts
+return a `RecordingSession` capability that must be supplied to control operations.
+
+```swift
+let recording = try await audioRecorder.lifecycle.startStreamingFile(.init(url: fileURL))
+
+switch try await audioRecorder.lifecycle.stop(recording.session) {
+case .released(.file(let result)):
+    // It is now safe to start another recording.
+    print(result.url)
+case .releasedWithError(let error):
+    // Finalization failed, but recorder resources are released.
+    print(error)
+case .releaseUnknown(let error):
+    // Do not start another recording. Recover explicitly.
+    print(error)
+    let release = try await audioRecorder.lifecycle.teardown(recording.session)
+    guard case .released = release else { return }
+}
+```
+
+`lifecycle.stop` is idempotent for a session: rapid duplicate calls receive the same
+terminal outcome and do not stop a newer session. `teardown` preserves partial files.
+The existing `.live` and `.file` APIs remain available for compatibility, but their
+throwing `stop` methods cannot express whether an error happened before or after
+release; use `lifecycle` for exclusive ownership.
+
 ## Usage
 
 Inject the client via the `@Dependency` macro:
